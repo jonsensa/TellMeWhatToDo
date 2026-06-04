@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TellMeWhatToDo - Your Smart Focus Scheduler</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Link CSS stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <h1>TellMeWhatToDo</h1>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn active" data-view="dashboard">
+                    <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-btn" data-view="tasks">
+                    <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M3 20h.01M3 14h.01M3 8h.01M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+                    <span>Tasks</span>
+                </button>
+                <button class="nav-btn" data-view="history">
+                    <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span>History</span>
+                </button>
+                <button class="nav-btn" data-view="settings">
+                    <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <span>Settings</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-badge" id="sidebar-user-badge">
+                    <div class="avatar" id="sidebar-avatar">U</div>
+                    <div class="user-info">
+                        <span class="user-name" id="sidebar-user-name">User</span>
+                        <span class="user-status">Focus Mode</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-welcome">
+                    <h2 id="welcome-greeting">Hello! Ready to focus?</h2>
+                    <p id="current-date-display">Thursday, June 4</p>
+                </div>
+                <div class="header-widgets">
+                    <div class="widget streak-widget" title="Daily streak of completed tasks">
+                        <span class="widget-icon">🔥</span>
+                        <span class="widget-value" id="streak-count-display">0 Days</span>
+                    </div>
+                    <div class="widget goal-widget" title="Focus time goal progress for today">
+                        <span class="widget-icon">⏱️</span>
+                        <div class="widget-progress-container">
+                            <span class="widget-value" id="goal-progress-text">0 / 2h</span>
+                            <div class="widget-progress-bar">
+                                <div class="widget-progress-fill" id="goal-progress-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard View -->
+            <section id="dashboard-view" class="view-panel active">
+                <div class="dashboard-grid">
+                    <!-- Call To Action Panel -->
+                    <div class="card cta-card">
+                        <div class="cta-glow"></div>
+                        <div class="cta-content">
+                            <h3>Feeling stuck or indecisive?</h3>
+                            <p>Let our engine scan your tasks and pick the absolute best one for your current mood, time, and location.</p>
+                            <button class="btn btn-primary btn-large pulse-btn" id="suggest-trigger-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                Tell Me What To Do!
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Suggestion Result Card (Hidden by default, shown when task is suggested) -->
+                    <div class="card suggestion-card hidden" id="suggestion-result-container">
+                        <div class="card-header">
+                            <div class="badge-row">
+                                <span class="badge" id="suggested-category-badge">Work</span>
+                                <span class="badge" id="suggested-priority-badge">High Priority</span>
+                                <span class="badge" id="suggestion-source-badge">Heuristic Match</span>
+                            </div>
+                            <h3 id="suggested-task-title">Read Research Papers</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="suggestion-meta">
+                                <div class="meta-item">
+                                    <span class="meta-icon">⏳</span>
+                                    <span id="suggested-task-duration">30 mins</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-icon">⚡</span>
+                                    <span id="suggested-task-energy">High Energy</span>
+                                </div>
+                                <div class="meta-item">
+                                    <span class="meta-icon">📍</span>
+                                    <span id="suggested-task-location">Home</span>
+                                </div>
+                            </div>
+                            <div class="recommendation-reason">
+                                <strong id="reason-title">Why this task?</strong>
+                                <p id="suggested-task-reason">It matches your current energy and location, and fits perfectly in your available time window!</p>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn btn-success" id="accept-task-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                Accept & Focus
+                            </button>
+                            <button class="btn btn-secondary" id="decline-task-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                Choose Another
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Focus Timer Card (Hidden by default, shown when task is accepted) -->
+                    <div class="card timer-card hidden" id="focus-timer-container">
+                        <div class="timer-header">
+                            <span class="timer-subtitle">Currently Focusing On</span>
+                            <h3 id="timer-task-title">Read Research Papers</h3>
+                        </div>
+                        <div class="timer-display-wrapper">
+                            <svg class="progress-ring" width="220" height="220">
+                                <circle class="progress-ring-circle-bg" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent" r="96" cx="110" cy="110"/>
+                                <circle class="progress-ring-circle" id="timer-progress-ring" stroke="var(--color-primary)" stroke-width="8" stroke-dasharray="603" stroke-dashoffset="603" stroke-linecap="round" fill="transparent" r="96" cx="110" cy="110"/>
+                            </svg>
+                            <div class="timer-digital" id="timer-time-display">25:00</div>
+                        </div>
+                        <div class="timer-controls">
+                            <button class="btn btn-icon btn-primary" id="timer-play-pause-btn" title="Pause Focus">
+                                <svg id="play-pause-svg" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                            </button>
+                            <button class="btn btn-icon btn-secondary" id="timer-reset-btn" title="Restart Timer">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                            </button>
+                            <button class="btn btn-success btn-text-label" id="timer-complete-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                Done!
+                            </button>
+                            <button class="btn btn-danger btn-text-label" id="timer-quit-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                Quit
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Daily Motivation / Activity Summary Card -->
+                    <div class="card summary-card">
+                        <h3>Today's Focus Status</h3>
+                        <div class="focus-summary-stats">
+                            <div class="stat-box">
+                                <span class="stat-num" id="today-completed-count">0</span>
+                                <span class="stat-label">Tasks Done</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-num" id="today-focus-mins">0m</span>
+                                <span class="stat-label">Time Spent</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-num" id="total-pending-count">0</span>
+                                <span class="stat-label">Remaining</span>
+                            </div>
+                        </div>
+                        <div class="card-message" id="dashboard-motivational-msg">
+                            "The secret of getting ahead is getting started." Add some tasks or hit "Tell Me What To Do" to begin your day!
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tasks Manager View -->
+            <section id="tasks-view" class="view-panel">
+                <div class="tasks-layout">
+                    <!-- Add Task Panel -->
+                    <div class="card add-task-card">
+                        <h3>Create New Task</h3>
+                        <form id="add-task-form" class="task-form">
+                            <div class="form-group">
+                                <label for="task-name">Task Name</label>
+                                <input type="text" id="task-name" placeholder="What needs to be done?" required autocomplete="off">
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="task-duration">Duration (minutes)</label>
+                                    <input type="number" id="task-duration" min="5" max="360" value="25" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="task-priority">Priority</label>
+                                    <select id="task-priority">
+                                        <option value="high">High</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="task-energy">Energy Required</label>
+                                    <select id="task-energy">
+                                        <option value="high">High (🔥 Focused)</option>
+                                        <option value="medium" selected>Medium (⚡ Normal)</option>
+                                        <option value="low">Low (🔋 Relaxed)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="task-location">Context / Location</label>
+                                    <select id="task-location">
+                                        <option value="anywhere" selected>Anywhere 🌍</option>
+                                        <option value="home">Home 🏠</option>
+                                        <option value="work">Work 💼</option>
+                                        <option value="outside">Outside 🚶</option>
+                                        <option value="errands">Errands 🛒</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="task-category">Category</label>
+                                    <input type="text" id="task-category" placeholder="Work, Health, Life, Study..." list="category-options" required>
+                                    <datalist id="category-options">
+                                        <option value="Work">
+                                        <option value="Study">
+                                        <option value="Health">
+                                        <option value="Errands">
+                                        <option value="Leisure">
+                                    </datalist>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add Task
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Tasks List Panel -->
+                    <div class="card tasks-list-card">
+                        <div class="list-header-row">
+                            <h3>Your Tasks</h3>
+                            <div class="filter-controls">
+                                <input type="text" id="task-search-input" placeholder="Search tasks...">
+                                <select id="task-filter-category">
+                                    <option value="all">All Categories</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="tasks-scroll-container">
+                            <div class="tasks-list" id="tasks-list-container">
+                                <!-- Tasks render here dynamically -->
+                                <div class="empty-state">
+                                    <span class="empty-icon">📝</span>
+                                    <p>No tasks added yet. Create one to populate your list!</p>
+                                    <button class="btn btn-secondary btn-sm" id="load-presets-btn">Load Demo Tasks</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- History View -->
+            <section id="history-view" class="view-panel">
+                <div class="history-grid">
+                    <!-- Stats Panel -->
+                    <div class="card stats-card">
+                        <h3>Performance Dashboard</h3>
+                        <div class="stats-grid">
+                            <div class="stat-tile">
+                                <span class="tile-num" id="stats-total-completed">0</span>
+                                <span class="tile-label">Total Completed</span>
+                            </div>
+                            <div class="stat-tile">
+                                <span class="tile-num" id="stats-total-hours">0h</span>
+                                <span class="tile-label">Focus Time Logged</span>
+                            </div>
+                            <div class="stat-tile">
+                                <span class="tile-num" id="stats-weekly-avg">0</span>
+                                <span class="tile-label">Completed this Week</span>
+                            </div>
+                            <div class="stat-tile">
+                                <span class="tile-num" id="stats-best-streak">0d</span>
+                                <span class="tile-label">All-time Streak</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Log Panel -->
+                    <div class="card log-card">
+                        <h3>Completion History</h3>
+                        <div class="history-scroll-container">
+                            <div class="history-list" id="history-list-container">
+                                <!-- History items render here -->
+                                <div class="empty-state">
+                                    <span class="empty-icon">⌛</span>
+                                    <p>No completed tasks in your logs. Finish tasks using the Focus Timer to see them here!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings View -->
+            <section id="settings-view" class="view-panel">
+                <div class="settings-grid">
+                    <div class="card settings-card">
+                        <h3>Profile & Preferences</h3>
+                        <form id="settings-form" class="settings-form-layout">
+                            <div class="form-group">
+                                <label for="settings-username">Your Name</label>
+                                <input type="text" id="settings-username" placeholder="Enter your name" value="Productive User">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="settings-daily-target">Daily Focus Goal (Hours)</label>
+                                <input type="number" id="settings-daily-target" min="0.5" max="24" step="0.5" value="2.0">
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <div class="api-section">
+                                <h3>Gemini AI Suggestion Engine (Optional)</h3>
+                                <p class="description">Paste your Google Gemini API Key below to unlock personalized recommendations powered by Gemini 1.5 Flash. The key is stored 100% locally in your web browser.</p>
+                                <div class="form-group">
+                                    <label for="settings-gemini-key">Gemini API Key</label>
+                                    <div class="input-password-wrapper">
+                                        <input type="password" id="settings-gemini-key" placeholder="AIzaSy...">
+                                        <button type="button" class="btn btn-secondary btn-icon" id="toggle-key-visibility" title="Toggle visibility">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                    </div>
+                                    <span class="api-key-status" id="key-status-indicator">🔑 Key not configured (local heuristics active)</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                        </form>
+                    </div>
+
+                    <div class="card danger-zone-card">
+                        <h3>Data Management</h3>
+                        <p class="description">Export your productivity data, restore a backup, or reset the app to factory settings.</p>
+                        <div class="data-actions-row">
+                            <button class="btn btn-secondary" id="export-data-btn">Export JSON</button>
+                            <button class="btn btn-secondary" id="import-data-trigger">Import JSON</button>
+                            <input type="file" id="import-data-file" accept=".json" style="display: none;">
+                            <button class="btn btn-danger" id="factory-reset-btn">Reset All Data</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Questionnaire Drawer / Modal Overlay -->
+    <div class="modal-overlay hidden" id="questionnaire-modal">
+        <div class="modal-container glass">
+            <div class="modal-header">
+                <h2>Quick Questionnaire</h2>
+                <button class="btn-close-modal" id="close-questionnaire-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="questionnaire-form">
+                    <div class="question-group">
+                        <label>How much time do you have right now?</label>
+                        <div class="options-grid" id="time-options">
+                            <button type="button" class="option-btn" data-value="15">15 mins</button>
+                            <button type="button" class="option-btn active" data-value="30">30 mins</button>
+                            <button type="button" class="option-btn" data-value="45">45 mins</button>
+                            <button type="button" class="option-btn" data-value="60">60 mins</button>
+                            <button type="button" class="option-btn" data-value="90">90 mins</button>
+                            <button type="button" class="option-btn" data-value="180">3 hours</button>
+                        </div>
+                    </div>
+
+                    <div class="question-group">
+                        <label>What's your energy level?</label>
+                        <div class="options-grid" id="energy-options">
+                            <button type="button" class="option-btn" data-value="low">🔋 Low</button>
+                            <button type="button" class="option-btn active" data-value="medium">⚡ Medium</button>
+                            <button type="button" class="option-btn" data-value="high">🔥 High</button>
+                        </div>
+                    </div>
+
+                    <div class="question-group">
+                        <label>Where are you located / what is your context?</label>
+                        <div class="options-grid" id="location-options">
+                            <button type="button" class="option-btn active" data-value="anywhere">🌍 Anywhere</button>
+                            <button type="button" class="option-btn" data-value="home">🏠 Home</button>
+                            <button type="button" class="option-btn" data-value="work">💼 Work</button>
+                            <button type="button" class="option-btn" data-value="outside">🚶 Outside</button>
+                            <button type="button" class="option-btn" data-value="errands">🛒 Errands</button>
+                        </div>
+                    </div>
+
+                    <div class="question-group" id="suggestion-engine-selection-container">
+                        <label>Suggestion Engine</label>
+                        <div class="options-grid grid-col-2" id="engine-options">
+                            <button type="button" class="option-btn active" data-value="local">🧠 Local Heuristic (Offline)</button>
+                            <button type="button" class="option-btn" data-value="gemini" id="gemini-engine-btn">🤖 Gemini AI (Requires Key)</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full btn-large">
+                        Find Best Task
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div class="modal-overlay hidden" id="edit-task-modal">
+        <div class="modal-container glass">
+            <div class="modal-header">
+                <h2>Edit Task</h2>
+                <button class="btn-close-modal" id="close-edit-modal-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-task-form">
+                    <input type="hidden" id="edit-task-id">
+                    
+                    <div class="form-group">
+                        <label for="edit-task-name">Task Name</label>
+                        <input type="text" id="edit-task-name" required autocomplete="off">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-task-duration">Duration (minutes)</label>
+                            <input type="number" id="edit-task-duration" min="5" max="360" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-task-priority">Priority</label>
+                            <select id="edit-task-priority">
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-task-energy">Energy Required</label>
+                            <select id="edit-task-energy">
+                                <option value="high">High (🔥 Focused)</option>
+                                <option value="medium">Medium (⚡ Normal)</option>
+                                <option value="low">Low (🔋 Relaxed)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-task-location">Context / Location</label>
+                            <select id="edit-task-location">
+                                <option value="anywhere">Anywhere 🌍</option>
+                                <option value="home">Home 🏠</option>
+                                <option value="work">Work 💼</option>
+                                <option value="outside">Outside 🚶</option>
+                                <option value="errands">Errands 🛒</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-task-category">Category</label>
+                            <input type="text" id="edit-task-category" list="category-options" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full">
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast-notification" class="toast hidden">
+        <span id="toast-message">Success!</span>
+    </div>
+
+    <!-- Main JS Application script -->
+    <script src="app.js"></script>
+</body>
+</html>
