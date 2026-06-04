@@ -187,76 +187,116 @@
                             "The secret of getting ahead is getting started." Add some tasks or hit "Tell Me What To Do" to begin your day!
                         </div>
                     </div>
+
+                    <!-- Brainstorm / Research Helper Card -->
+                    <div class="card brainstorm-card">
+                        <h3>AI Research & Breakdown</h3>
+                        <p class="description">Select a task and brainstorm actionable steps with the AI suggestion helper.</p>
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            <select id="brainstorm-task-select">
+                                <option value="">-- Choose a Task --</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary btn-full" id="brainstorm-trigger-btn" style="margin-bottom: 12px; gap: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            Break Down Task
+                        </button>
+                        <div class="brainstorm-result-box hidden" id="brainstorm-result-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 12px; max-height: 250px; overflow-y: auto; font-size: 0.85rem; line-height: 1.4; color: var(--text-secondary); margin-top: 10px;">
+                            <!-- Results render here -->
+                        </div>
+                    </div>
                 </div>
             </section>
 
             <!-- Tasks Manager View -->
             <section id="tasks-view" class="view-panel">
                 <div class="tasks-layout">
-                    <!-- Add Task Panel -->
-                    <div class="card add-task-card">
-                        <h3>Create New Task</h3>
-                        <form id="add-task-form" class="task-form">
-                            <div class="form-group">
-                                <label for="task-name">Task Name</label>
-                                <input type="text" id="task-name" placeholder="What needs to be done?" required autocomplete="off">
-                            </div>
+                    <div class="tasks-layout-sidebar">
+                        <!-- Add Task Panel -->
+                        <div class="card add-task-card">
+                            <h3>Create New Task</h3>
+                            <form id="add-task-form" class="task-form">
+                                <div class="form-group">
+                                    <label for="task-name">Task Name</label>
+                                    <input type="text" id="task-name" placeholder="What needs to be done?" required autocomplete="off">
+                                </div>
 
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="task-duration">Duration (minutes)</label>
-                                    <input type="number" id="task-duration" min="5" max="360" value="25" required>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="task-duration">Duration (minutes)</label>
+                                        <input type="number" id="task-duration" min="5" max="360" value="25" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="task-priority">Priority</label>
+                                        <select id="task-priority">
+                                            <option value="high">High</option>
+                                            <option value="medium" selected>Medium</option>
+                                            <option value="low">Low</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="task-priority">Priority</label>
-                                    <select id="task-priority">
-                                        <option value="high">High</option>
-                                        <option value="medium" selected>Medium</option>
-                                        <option value="low">Low</option>
-                                    </select>
-                                </div>
-                            </div>
 
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="task-energy">Energy Required</label>
-                                    <select id="task-energy">
-                                        <option value="high">High (🔥 Focused)</option>
-                                        <option value="medium" selected>Medium (⚡ Normal)</option>
-                                        <option value="low">Low (🔋 Relaxed)</option>
-                                    </select>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="task-energy">Energy Required</label>
+                                        <select id="task-energy">
+                                            <option value="high">High (🔥 Focused)</option>
+                                            <option value="medium" selected>Medium (⚡ Normal)</option>
+                                            <option value="low">Low (🔋 Relaxed)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="task-location">Context / Location</label>
+                                        <select id="task-location">
+                                            <option value="anywhere" selected>Anywhere 🌍</option>
+                                            <option value="home">Home 🏠</option>
+                                            <option value="work">Work 💼</option>
+                                            <option value="outside">Outside 🚶</option>
+                                            <option value="errands">Errands 🛒</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="task-location">Context / Location</label>
-                                    <select id="task-location">
-                                        <option value="anywhere" selected>Anywhere 🌍</option>
-                                        <option value="home">Home 🏠</option>
-                                        <option value="work">Work 💼</option>
-                                        <option value="outside">Outside 🚶</option>
-                                        <option value="errands">Errands 🛒</option>
-                                    </select>
-                                </div>
-                            </div>
 
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="task-category">Category</label>
-                                    <input type="text" id="task-category" placeholder="Work, Health, Life, Study..." list="category-options" required>
-                                    <datalist id="category-options">
-                                        <option value="Work">
-                                        <option value="Study">
-                                        <option value="Health">
-                                        <option value="Errands">
-                                        <option value="Leisure">
-                                    </datalist>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="task-category">Category</label>
+                                        <input type="text" id="task-category" placeholder="Work, Health, Life, Study..." list="category-options" required>
+                                        <datalist id="category-options">
+                                            <option value="Work">
+                                            <option value="Study">
+                                            <option value="Health">
+                                            <option value="Errands">
+                                            <option value="Leisure">
+                                        </datalist>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <button type="submit" class="btn btn-primary btn-full">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                Add Task
-                            </button>
-                        </form>
+                                <div class="form-row checkbox-row" style="margin-top: 4px;">
+                                    <div class="form-group-checkbox" style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="task-requires-timer" checked style="width: 16px; height: 16px; margin: 0; cursor: pointer;">
+                                        <label for="task-requires-timer" style="margin: 0; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px;">Requires Focus Timer</label>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    Add Task
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Weekly Focus List Card -->
+                        <div class="card weekly-tasks-card" style="margin-top: 20px;">
+                            <h3>Weekly Goals</h3>
+                            <p class="description">Add isolated items you want to tackle this week. No timer needed.</p>
+                            <form id="add-weekly-form" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                <input type="text" id="weekly-task-name" placeholder="Add a weekly goal..." required autocomplete="off" style="padding: 8px 12px; font-size: 0.85rem; border-radius: var(--border-radius-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: white; outline: none; width: 100%;">
+                                <button type="submit" class="btn btn-primary btn-sm" style="padding: 8px 14px;">Add</button>
+                            </form>
+                            <div class="weekly-tasks-list" id="weekly-tasks-list-container" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px;">
+                                <!-- Weekly items render dynamically -->
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Tasks List Panel -->
@@ -288,6 +328,15 @@
             <!-- History View -->
             <section id="history-view" class="view-panel">
                 <div class="history-grid">
+                    <!-- Trajectory Graph Card -->
+                    <div class="card graph-card">
+                        <h3>Weekly Focus Trajectory</h3>
+                        <div class="chart-container" style="height: 180px; display: flex; align-items: flex-end; justify-content: space-around; padding: 10px 0; border-bottom: 1px solid var(--border-color); margin-bottom: 10px;">
+                            <svg id="trajectory-svg-chart" style="width: 100%; height: 100%; min-height: 150px;"></svg>
+                        </div>
+                        <p class="description" style="text-align: center; margin: 0;">Trajectory chart shows the percentage of target focus hours completed each day over the last 7 days.</p>
+                    </div>
+
                     <!-- Stats Panel -->
                     <div class="card stats-card">
                         <h3>Performance Dashboard</h3>
@@ -358,10 +407,36 @@
                                     </div>
                                     <span class="api-key-status" id="key-status-indicator">🔑 Key not configured (local heuristics active)</span>
                                 </div>
+                                <div class="form-group" style="margin-top: 15px;">
+                                    <label for="settings-fav-character">Anti-Procrastination Companion Character</label>
+                                    <input type="text" id="settings-fav-character" placeholder="e.g. Batman, Yoda, Gandalf, Iron Man" value="Yoda">
+                                </div>
+                                <div class="form-group">
+                                    <label for="settings-motivation-vibe">Quote Vibe Style</label>
+                                    <select id="settings-motivation-vibe">
+                                        <option value="stoic" selected>Stoic & Disciplined</option>
+                                        <option value="witty">Witty & Sarcastic</option>
+                                        <option value="wise">Wise & Philosophical</option>
+                                        <option value="aggressive">Aggressive & Direct</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <button type="submit" class="btn btn-primary">Save Settings</button>
                         </form>
+                    </div>
+
+                    <div class="card monthly-goals-card">
+                        <h3>Monthly Goals</h3>
+                        <p class="description">Track larger goals and countdown to their deadlines. Frequency of warnings increases as target dates approach.</p>
+                        <div id="settings-goals-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; max-height: 220px; overflow-y: auto;">
+                            <!-- Monthly goals render dynamically -->
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                            <input type="text" id="goal-input-name" placeholder="Target goal (e.g. Read 3 books)" style="padding: 8px 12px; font-size: 0.85rem; border-radius: var(--border-radius-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: white; outline: none;">
+                            <input type="date" id="goal-input-date" style="padding: 8px 12px; font-size: 0.85rem; border-radius: var(--border-radius-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); color: white; outline: none;">
+                            <button type="button" class="btn btn-primary btn-sm" id="add-monthly-goal-btn">Add Goal</button>
+                        </div>
                     </div>
 
                     <div class="card danger-zone-card">
@@ -467,6 +542,13 @@
                         </div>
                     </div>
 
+                    <div class="form-row checkbox-row" style="margin-top: 4px;">
+                        <div class="form-group-checkbox" style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="edit-task-requires-timer" checked style="width: 16px; height: 16px; margin: 0; cursor: pointer;">
+                            <label for="edit-task-requires-timer" style="margin: 0; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px;">Requires Focus Timer</label>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="edit-task-energy">Energy Required</label>
@@ -506,6 +588,16 @@
     <!-- Notification Toast -->
     <div id="toast-notification" class="toast hidden">
         <span id="toast-message">Success!</span>
+    </div>
+
+    <!-- Don't Let Me Quit Lock Screen Overlay -->
+    <div class="quit-lock-overlay" id="quit-lock-overlay">
+        <div class="quit-lock-container">
+            <div class="quit-lock-icon">⏱️</div>
+            <h2>Don't Let Me Quit Mode Active</h2>
+            <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.4;">Hold on! Focus on your task for just 60 more seconds first. You got this, keep going!</p>
+            <div class="quit-lock-timer" id="quit-lock-timer-display">01:00</div>
+        </div>
     </div>
 
     <!-- Main JS Application script -->
