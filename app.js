@@ -345,7 +345,7 @@ function openModal(modalId) {
             }
         } else {
             geminiBtn.removeAttribute("disabled");
-            geminiBtn.title = "Personalized recommendation by Gemini 1.5 Flash";
+            geminiBtn.title = "Personalized recommendation by Gemini 2.0 Flash";
         }
     }
 
@@ -466,7 +466,7 @@ Instructions:
 }
 4. Do not wrap the JSON output in markdown blocks (e.g. do not write \`\`\`json). Return the raw JSON object string only.`;
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(apiUrl, {
         method: "POST",
@@ -1450,7 +1450,7 @@ function updateApiKeyIndicator() {
     if (!indicator) return;
 
     if (state.settings.geminiApiKey) {
-        indicator.textContent = "🔑 Gemini AI Active (Gemini 1.5 Flash)";
+        indicator.textContent = "🔑 Gemini AI Active (Gemini 2.0 Flash)";
         indicator.className = "api-key-status api-key-configured";
     } else {
         indicator.textContent = "🔑 Key not configured (local heuristics active)";
@@ -1819,7 +1819,7 @@ async function injectFictionalQuote(task) {
 The vibe style should be: "${vibe}".
 Keep it under 110 characters. Do not wrap in quotation marks. Do not output anything else. Just the quote in character.`;
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2045,7 +2045,7 @@ Please output the result in plain text format containing only the step lines. Fo
 2. Second action step
 Do not output any introductory or concluding text. Just the lines.`;
 
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         const response = await fetch(apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2053,7 +2053,9 @@ Do not output any introductory or concluding text. Just the lines.`;
         });
 
         if (!response.ok) {
-            throw new Error(`Server returned HTTP ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            const message = errorData.error?.message || `HTTP ${response.status}`;
+            throw new Error(`Gemini Server: ${message}`);
         }
 
         const data = await response.json();
