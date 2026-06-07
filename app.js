@@ -14,10 +14,7 @@ let state = {
     monthlyGoals: [],// Array of MonthlyGoal: { id, name, date }
     settings: {
         username: "Productive User",
-        dailyFocusTarget: 2.0, // in hours
-        geminiApiKey: "",
-        favCharacter: "Yoda",
-        motivationVibe: "stoic"
+        dailyFocusTarget: 2.0 // in hours
     },
     currentStreak: 0,
     bestStreak: 0,
@@ -57,12 +54,19 @@ const STORAGE_KEY = "tellmewhattodo_state";
 function initApp() {
     loadStateFromStorage();
     setupEventListeners();
+    
+    // Load theme setting
+    const savedTheme = localStorage.getItem("tellmewhattodo_theme");
+    if (savedTheme === "light") {
+        document.body.classList.add("light-mode");
+    } else {
+        document.body.classList.remove("light-mode");
+    }
+    updateThemeToggleUI();
+
     updateDateDisplay();
     renderAllViews();
     checkAndUpdateStreak();
-    
-    // Update API indicator status on startup
-    updateApiKeyIndicator();
     
     // Setup recurring Priority Reminders check (every 30 seconds for test responsiveness, equivalent to 3 hours in practice)
     setInterval(checkPriorityTaskReminders, 30000);
@@ -86,9 +90,6 @@ function loadStateFromStorage() {
             state.settings = {
                 username: "Productive User",
                 dailyFocusTarget: 2.0,
-                geminiApiKey: "",
-                favCharacter: "Yoda",
-                motivationVibe: "stoic",
                 ...(parsed.settings || {})
             };
             
@@ -102,10 +103,7 @@ function loadStateFromStorage() {
             state.monthlyGoals = [];
             state.settings = {
                 username: "Productive User",
-                dailyFocusTarget: 2.0,
-                geminiApiKey: "",
-                favCharacter: "Yoda",
-                motivationVibe: "stoic"
+                dailyFocusTarget: 2.0
             };
             saveStateToStorage();
         }
@@ -231,7 +229,6 @@ function setupEventListeners() {
     setupOptionGridToggles("time-options");
     setupOptionGridToggles("energy-options");
     setupOptionGridToggles("location-options");
-    setupOptionGridToggles("engine-options");
 
     // Questionnaire Form Submit
     document.getElementById("questionnaire-form").addEventListener("submit", handleQuestionnaireSubmit);
@@ -255,7 +252,6 @@ function setupEventListeners() {
 
     // Settings Form Triggers
     document.getElementById("settings-form").addEventListener("submit", handleSettingsSubmit);
-    document.getElementById("toggle-key-visibility").addEventListener("click", toggleApiKeyVisibility);
 
     // Backup & Data management triggers
     document.getElementById("export-data-btn").addEventListener("click", exportDataJSON);
@@ -268,11 +264,47 @@ function setupEventListeners() {
     // Weekly Tasks list
     document.getElementById("add-weekly-form").addEventListener("submit", handleAddWeeklySubmit);
     
-    // Brainstorm/Research helper
-    document.getElementById("brainstorm-trigger-btn").addEventListener("click", handleBrainstormSubmit);
-    
     // Monthly Goals addition
-    document.getElementById("add-monthly-goal-btn").addEventListener("click", handleAddMonthlyGoalSubmit);
+    document.getElementById("add-monthly-goal-form").addEventListener("submit", handleAddMonthlyGoalSubmit);
+
+    // Completion Celebration modal triggers
+    document.getElementById("close-completion-btn").addEventListener("click", () => closeModal("completion-modal"));
+
+    // Theme toggle trigger
+    document.getElementById("theme-toggle-btn").addEventListener("click", toggleTheme);
+
+    // Auto duration/timer behavior based on category input
+    const setupCategoryListener = (catInputId, durationInputId, timerCheckboxId) => {
+        const catInput = document.getElementById(catInputId);
+        if (!catInput) return;
+        
+        const handler = () => {
+            const durationInput = document.getElementById(durationInputId);
+            const timerCheckbox = document.getElementById(timerCheckboxId);
+            if (!durationInput || !timerCheckbox) return;
+
+            const val = catInput.value.trim().toLowerCase();
+            const noDurationCats = ["errands", "health", "leisure"];
+            if (noDurationCats.includes(val)) {
+                durationInput.disabled = true;
+                durationInput.value = "0";
+                timerCheckbox.checked = false;
+                timerCheckbox.disabled = true;
+            } else {
+                durationInput.disabled = false;
+                if (durationInput.value === "0" || durationInput.value === "") {
+                    durationInput.value = "25";
+                }
+                timerCheckbox.disabled = false;
+            }
+        };
+
+        catInput.addEventListener("input", handler);
+        catInput.addEventListener("change", handler);
+    };
+
+    setupCategoryListener("task-category", "task-duration", "task-requires-timer");
+    setupCategoryListener("edit-task-category", "edit-task-duration", "edit-task-requires-timer");
 }
 
 /**
@@ -308,18 +340,16 @@ function switchView(viewName) {
     // Rerender view specific content when navigating to it
     if (viewName === "dashboard") {
         renderDashboardStats();
-        populateBrainstormTaskSelect();
     } else if (viewName === "tasks") {
         renderTasksList();
         renderWeeklyTasksList();
+        renderMonthlyGoalsList();
         populateCategoryFilterDropdown();
     } else if (viewName === "history") {
         renderHistoryList();
         renderHistoryStats();
-        renderTrajectoryGraph();
     } else if (viewName === "settings") {
         loadSettingsToForm();
-        renderMonthlyGoalsList();
     }
 }
 
@@ -328,28 +358,7 @@ function switchView(viewName) {
  */
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
-    if (!modal) return;
-
-    // If it is the questionnaire, select default or match API status
-    if (modalId === "questionnaire-modal") {
-        const geminiBtn = document.getElementById("gemini-engine-btn");
-        if (!state.settings.geminiApiKey) {
-            geminiBtn.setAttribute("disabled", "true");
-            geminiBtn.title = "Configure Gemini API key in Settings to activate AI mode";
-
-            // Revert selection if it was somehow set to gemini
-            const localBtn = document.querySelector('#engine-options [data-value="local"]');
-            if (localBtn) {
-                document.querySelectorAll("#engine-options .option-btn").forEach(b => b.classList.remove("active"));
-                localBtn.classList.add("active");
-            }
-        } else {
-            geminiBtn.removeAttribute("disabled");
-            geminiBtn.title = "Personalized recommendation by Gemini 2.0 Flash";
-        }
-    }
-
-    modal.classList.remove("hidden");
+    if (modal) modal.classList.remove("hidden");
 }
 
 function closeModal(modalId) {
@@ -427,95 +436,6 @@ function matchTaskHeuristic(timeAvailable, energyLevel, locationContext) {
 }
 
 /**
- * GEMINI API INTEGRATION (AI SUGGESTIONS)
- */
-async function fetchGeminiSuggestion(timeAvailable, energyLevel, locationContext, eligibleTasks) {
-    const apiKey = state.settings.geminiApiKey;
-    if (!apiKey) {
-        throw new Error("API Key missing. Enter key in Settings.");
-    }
-
-    // Format options context for prompt
-    const contextPrompt = `Available Time: ${timeAvailable} minutes, Energy Level: ${energyLevel}, Location/Context: ${locationContext}.`;
-
-    // Format tasks for LLM context
-    const tasksData = eligibleTasks.map(t => ({
-        id: t.id,
-        name: t.name,
-        duration: `${t.duration}m`,
-        priority: t.priority,
-        energy: t.energy,
-        location: t.location,
-        category: t.category
-    }));
-
-    const prompt = `You are a smart personal productivity system selector.
-Based on the user's current situation:
-- ${contextPrompt}
-
-Here is a list of candidate tasks in JSON format:
-${JSON.stringify(tasksData)}
-
-Instructions:
-1. Select the single best task for the user's situation from the list.
-2. If multiple tasks fit well, prioritize higher importance/priority, location match, and the closest duration match.
-3. You MUST return your choice in a strict JSON format with exactly two fields:
-{
-  "taskId": "the ID of the selected task",
-  "reason": "A highly motivating, friendly sentence explaining why this fits their current status under 100 characters."
-}
-4. Do not wrap the JSON output in markdown blocks (e.g. do not write \`\`\`json). Return the raw JSON object string only.`;
-
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-    const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            contents: [
-                {
-                    parts: [
-                        { text: prompt }
-                    ]
-                }
-            ],
-            generationConfig: {
-                responseMimeType: "application/json"
-            }
-        })
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const message = errorData.error?.message || `HTTP error ${response.status}`;
-        throw new Error(`Gemini Server: ${message}`);
-    }
-
-    const data = await response.json();
-    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!resultText) {
-        throw new Error("Empty response received from Gemini.");
-    }
-
-    // Sanitize in case Gemini wrapped response in markdown code fences
-    let cleanJson = resultText.trim();
-    if (cleanJson.startsWith("```")) {
-        cleanJson = cleanJson.replace(/^```(json)?/, "").replace(/```$/, "").trim();
-    }
-
-    const selection = JSON.parse(cleanJson);
-
-    if (!selection.taskId) {
-        throw new Error("Response JSON did not contain 'taskId'.");
-    }
-
-    return selection;
-}
-
-/**
  * QUESTIONNAIRE SUBMISSION ROUTINE
  */
 async function handleQuestionnaireSubmit(e) {
@@ -524,7 +444,6 @@ async function handleQuestionnaireSubmit(e) {
     const timeVal = parseInt(getSelectedOptionValue("time-options"), 10);
     const energyVal = getSelectedOptionValue("energy-options");
     const locationVal = getSelectedOptionValue("location-options");
-    const engineVal = getSelectedOptionValue("engine-options");
 
     closeModal("questionnaire-modal");
 
@@ -539,40 +458,12 @@ async function handleQuestionnaireSubmit(e) {
         return;
     }
 
-    // Show temporary spinner placeholder
-    showToast("Processing recommendations...");
-
-    if (engineVal === "gemini") {
-        try {
-            const aiSuggestion = await fetchGeminiSuggestion(timeVal, energyVal, locationVal, eligibleTasks);
-            const matchedTask = state.tasks.find(t => t.id === aiSuggestion.taskId);
-
-            if (matchedTask) {
-                displaySuggestion(matchedTask, aiSuggestion.reason, "Gemini AI");
-            } else {
-                // Fallback if AI picked invalid ID
-                fallbackToHeuristic(timeVal, energyVal, locationVal, "Gemini selected invalid task ID.");
-            }
-        } catch (error) {
-            console.error("AI Suggestion failed:", error);
-            fallbackToHeuristic(timeVal, energyVal, locationVal, `AI Engine Error: ${error.message}. Loaded local match.`);
-        }
-    } else {
-        // Run Local Heuristic
-        const result = matchTaskHeuristic(timeVal, energyVal, locationVal);
-        if (result) {
-            displaySuggestion(result.task, getHeuristicReasonText(result.task, energyVal, locationVal), "Heuristic Match");
-        } else {
-            showToast("No tasks fit your criteria.", true);
-        }
-    }
-}
-
-function fallbackToHeuristic(timeVal, energyVal, locationVal, errorMessage) {
-    showToast(errorMessage, true);
+    // Run Local Heuristic
     const result = matchTaskHeuristic(timeVal, energyVal, locationVal);
     if (result) {
-        displaySuggestion(result.task, getHeuristicReasonText(result.task, energyVal, locationVal) + " (AI Fallback)", "Heuristic Match");
+        displaySuggestion(result.task, getHeuristicReasonText(result.task, energyVal, locationVal), "Heuristic Match");
+    } else {
+        showToast("No tasks fit your criteria.", true);
     }
 }
 
@@ -620,8 +511,7 @@ function displaySuggestion(task, reason, sourceName) {
     document.getElementById("suggestion-result-container").classList.remove("hidden");
     document.querySelector(".cta-card").classList.add("hidden");
     
-    // Inject fictional companion quote block
-    injectFictionalQuote(task);
+    // Local suggestion complete
 }
 
 function declineSuggestedTask() {
@@ -723,10 +613,10 @@ function updateTimerUI() {
         `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
     // Update SVG progress circle
-    // Circumference = 603
+    // Circumference = 440
     const circle = document.getElementById("timer-progress-ring");
     if (circle) {
-        const offset = 603 - (603 * (state.timer.timeLeft / state.timer.duration));
+        const offset = 440 - (440 * (state.timer.timeLeft / state.timer.duration));
         circle.style.strokeDashoffset = offset;
     }
 }
@@ -792,7 +682,14 @@ function completeFocusSession(isAutoCompleted = false) {
 
     // Calculate elapsed focus minutes
     const elapsedSeconds = state.timer.duration - state.timer.timeLeft;
-    const elapsedMins = Math.max(1, Math.round(elapsedSeconds / 60)); // Minimum of 1 min for completed logs
+    let elapsedMins = Math.max(1, Math.round(elapsedSeconds / 60)); // Minimum of 1 min for completed logs
+
+    // Exclude Errands, Health, and Leisure from focus duration logging
+    const noDurationCats = ["errands", "health", "leisure"];
+    const taskCategory = (task.category || "").trim().toLowerCase();
+    if (noDurationCats.includes(taskCategory)) {
+        elapsedMins = 0;
+    }
 
     // Add item to completion history logs
     const historyItem = {
@@ -824,7 +721,27 @@ function completeFocusSession(isAutoCompleted = false) {
     checkAndUpdateStreak();
     renderAllViews();
 
+    // Show custom Celebration Modal
+    showCompletionCelebration(task.name);
+
     showToast(`Conquered: "${task.name}"! Logged ${elapsedMins}m focus time.`);
+}
+
+/**
+ * Shows the completion celebration modal with a random, non-cliche motivational quote.
+ */
+function showCompletionCelebration(taskName) {
+    const displayEl = document.getElementById("completion-task-display");
+    const quoteEl = document.getElementById("completion-quote-text");
+    const modal = document.getElementById("completion-modal");
+    
+    if (displayEl) displayEl.textContent = taskName;
+    if (quoteEl) {
+        const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+        quoteEl.textContent = `"${MOTIVATIONAL_QUOTES[randomIndex]}"`;
+    }
+    
+    if (modal) modal.classList.remove("hidden");
 }
 
 function quitFocusSession() {
@@ -1006,10 +923,11 @@ function renderAllViews() {
     renderDashboardStats();
 
     if (state.activeView === "dashboard") {
-        populateBrainstormTaskSelect();
+        // Dashboard views updated
     } else if (state.activeView === "tasks") {
         renderTasksList();
         renderWeeklyTasksList();
+        renderMonthlyGoalsList();
         populateCategoryFilterDropdown();
     } else if (state.activeView === "history") {
         renderHistoryList();
@@ -1017,7 +935,6 @@ function renderAllViews() {
         renderTrajectoryGraph();
     } else if (state.activeView === "settings") {
         loadSettingsToForm();
-        renderMonthlyGoalsList();
     }
 }
 
@@ -1083,6 +1000,32 @@ function renderDashboardStats() {
     } else {
         messageEl.textContent = `🎉 Daily Goal Conquered! You crossed your target focus goal. Treat yourself, or keep going if you are in the zone!`;
     }
+
+    // 1. Update Streaks Card on Dashboard
+    const streakStr = state.currentStreak === 1 ? "1 Day" : `${state.currentStreak} Days`;
+    const streakCountEl = document.getElementById("dashboard-streak-count");
+    if (streakCountEl) streakCountEl.textContent = streakStr;
+
+    const bestStreakEl = document.getElementById("dashboard-best-streak");
+    if (bestStreakEl) bestStreakEl.textContent = `Best: ${state.bestStreak} Days`;
+
+    // Calculate completions across daily, weekly, and monthly tasks/goals today
+    const completedWeeklyToday = state.weeklyTasks.filter(item => item.completed && item.completedAt && getLocalDateString(new Date(item.completedAt)) === todayStr).length;
+    const completedMonthlyToday = state.monthlyGoals.filter(item => item.completed && item.completedAt && getLocalDateString(new Date(item.completedAt)) === todayStr).length;
+    const totalCompletionsToday = countToday + completedWeeklyToday + completedMonthlyToday;
+
+    const streakMsgEl = document.getElementById("dashboard-streak-message");
+    if (streakMsgEl) {
+        if (totalCompletionsToday > 0) {
+            streakMsgEl.textContent = `Streak active! You completed ${totalCompletionsToday} item${totalCompletionsToday === 1 ? '' : 's'} today. Keep the momentum going! 🔥`;
+        } else {
+            streakMsgEl.textContent = `Your streak is at risk. Complete a task or check off a goal today to keep it alive! ⚡`;
+        }
+    }
+
+    // 2. Rerender Trajectory Graph and Heatmap
+    renderTrajectoryGraph();
+    renderContributionCalendar();
 }
 
 /**
@@ -1097,20 +1040,30 @@ function handleAddTaskSubmit(e) {
     const energy = document.getElementById("task-energy").value;
     const location = document.getElementById("task-location").value;
     const category = document.getElementById("task-category").value.trim() || "General";
-    const requiresTimer = document.getElementById("task-requires-timer").checked;
-
+    
     // Explicit validation with user-facing feedback (instead of silent HTML5 blocks)
     if (!name) {
         showToast("Please enter a task name.", true);
         return;
     }
 
-    if (isNaN(durationRaw) || durationRaw < 5 || durationRaw > 360) {
-        showToast("Duration must be between 5 and 360 minutes.", true);
-        return;
+    const noDurationCats = ["errands", "health", "leisure"];
+    const isNoDuration = noDurationCats.includes(category.toLowerCase());
+    
+    let duration = 0;
+    let requiresTimer = false;
+    
+    if (isNoDuration) {
+        duration = 0;
+        requiresTimer = false;
+    } else {
+        if (isNaN(durationRaw) || durationRaw < 5 || durationRaw > 360) {
+            showToast("Duration must be between 5 and 360 minutes.", true);
+            return;
+        }
+        duration = durationRaw;
+        requiresTimer = document.getElementById("task-requires-timer").checked;
     }
-
-    const duration = durationRaw;
 
     const newTask = {
         id: "task-" + Date.now(),
@@ -1129,6 +1082,8 @@ function handleAddTaskSubmit(e) {
 
     // Reset Form
     document.getElementById("add-task-form").reset();
+    document.getElementById("task-duration").disabled = false;
+    document.getElementById("task-requires-timer").disabled = false;
 
     // Re-render
     renderAllViews();
@@ -1253,6 +1208,20 @@ function openEditTaskModal(taskId) {
     document.getElementById("edit-task-category").value = task.category;
     document.getElementById("edit-task-requires-timer").checked = task.requiresTimer !== false;
 
+    // Trigger state check on open
+    const durationInput = document.getElementById("edit-task-duration");
+    const timerCheckbox = document.getElementById("edit-task-requires-timer");
+    const val = (task.category || "").trim().toLowerCase();
+    const noDurationCats = ["errands", "health", "leisure"];
+    if (noDurationCats.includes(val)) {
+        durationInput.disabled = true;
+        timerCheckbox.checked = false;
+        timerCheckbox.disabled = true;
+    } else {
+        durationInput.disabled = false;
+        timerCheckbox.disabled = false;
+    }
+
     openModal("edit-task-modal");
 }
 
@@ -1261,12 +1230,34 @@ function handleEditTaskSubmit(e) {
 
     const id = document.getElementById("edit-task-id").value;
     const name = document.getElementById("edit-task-name").value.trim();
-    const duration = parseInt(document.getElementById("edit-task-duration").value, 10);
+    const durationRaw = parseInt(document.getElementById("edit-task-duration").value, 10);
     const priority = document.getElementById("edit-task-priority").value;
     const energy = document.getElementById("edit-task-energy").value;
     const location = document.getElementById("edit-task-location").value;
     const category = document.getElementById("edit-task-category").value.trim() || "General";
-    const requiresTimer = document.getElementById("edit-task-requires-timer").checked;
+
+    if (!name) {
+        showToast("Please enter a task name.", true);
+        return;
+    }
+
+    const noDurationCats = ["errands", "health", "leisure"];
+    const isNoDuration = noDurationCats.includes(category.toLowerCase());
+    
+    let duration = 0;
+    let requiresTimer = false;
+    
+    if (isNoDuration) {
+        duration = 0;
+        requiresTimer = false;
+    } else {
+        if (isNaN(durationRaw) || durationRaw < 5 || durationRaw > 360) {
+            showToast("Duration must be between 5 and 360 minutes.", true);
+            return;
+        }
+        duration = durationRaw;
+        requiresTimer = document.getElementById("edit-task-requires-timer").checked;
+    }
 
     const taskIndex = state.tasks.findIndex(t => t.id === id);
     if (taskIndex === -1) return;
@@ -1357,7 +1348,7 @@ function renderHistoryList() {
                 </div>
             </div>
             <div class="history-item-right">
-                <span>⏱️ +${item.duration}m</span>
+                <span>${item.duration === 0 ? '🧘 Self-paced' : `⏱️ +${item.duration}m`}</span>
                 <button class="btn-action-icon delete-btn" data-id="${item.id}" title="Remove Entry" style="width:24px; height:24px; margin-left:8px;">
                     &times;
                 </button>
@@ -1409,9 +1400,6 @@ function renderHistoryStats() {
 function loadSettingsToForm() {
     document.getElementById("settings-username").value = state.settings.username;
     document.getElementById("settings-daily-target").value = state.settings.dailyFocusTarget;
-    document.getElementById("settings-gemini-key").value = state.settings.geminiApiKey || "";
-    document.getElementById("settings-fav-character").value = state.settings.favCharacter || "Yoda";
-    document.getElementById("settings-motivation-vibe").value = state.settings.motivationVibe || "stoic";
 }
 
 function handleSettingsSubmit(e) {
@@ -1419,15 +1407,9 @@ function handleSettingsSubmit(e) {
 
     const username = document.getElementById("settings-username").value.trim() || "Productive User";
     const dailyTarget = parseFloat(document.getElementById("settings-daily-target").value) || 2.0;
-    const geminiKey = document.getElementById("settings-gemini-key").value.trim();
-    const favCharacter = document.getElementById("settings-fav-character").value.trim() || "Yoda";
-    const motivationVibe = document.getElementById("settings-motivation-vibe").value;
 
     state.settings.username = username;
     state.settings.dailyFocusTarget = dailyTarget;
-    state.settings.geminiApiKey = geminiKey;
-    state.settings.favCharacter = favCharacter;
-    state.settings.motivationVibe = motivationVibe;
 
     saveStateToStorage();
 
@@ -1435,40 +1417,11 @@ function handleSettingsSubmit(e) {
     document.getElementById("sidebar-user-name").textContent = username;
     document.getElementById("sidebar-avatar").textContent = username.charAt(0).toUpperCase();
 
-    // Update API Key Status
-    updateApiKeyIndicator();
-
     // Rerender headers
     renderHeaderWidgets();
     renderDashboardStats();
 
     showToast("Settings updated successfully.");
-}
-
-function updateApiKeyIndicator() {
-    const indicator = document.getElementById("key-status-indicator");
-    if (!indicator) return;
-
-    if (state.settings.geminiApiKey) {
-        indicator.textContent = "🔑 Gemini AI Active (Gemini 2.0 Flash)";
-        indicator.className = "api-key-status api-key-configured";
-    } else {
-        indicator.textContent = "🔑 Key not configured (local heuristics active)";
-        indicator.className = "api-key-status";
-    }
-}
-
-function toggleApiKeyVisibility() {
-    const input = document.getElementById("settings-gemini-key");
-    const btn = document.getElementById("toggle-key-visibility");
-
-    if (input.type === "password") {
-        input.type = "text";
-        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
-    } else {
-        input.type = "password";
-        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
-    }
 }
 
 /**
@@ -1552,10 +1505,7 @@ function factoryResetData() {
         monthlyGoals: [],
         settings: {
             username: "Productive User",
-            dailyFocusTarget: 2.0,
-            geminiApiKey: "",
-            favCharacter: "Yoda",
-            motivationVibe: "stoic"
+            dailyFocusTarget: 2.0
         },
         currentStreak: 0,
         bestStreak: 0,
@@ -1656,15 +1606,23 @@ function renderWeeklyTasksList() {
 function toggleWeeklyTask(id) {
     const idx = state.weeklyTasks.findIndex(item => item.id === id);
     if (idx === -1) return;
-    state.weeklyTasks[idx].completed = !state.weeklyTasks[idx].completed;
+    const task = state.weeklyTasks[idx];
+    task.completed = !task.completed;
+    if (task.completed) {
+        task.completedAt = Date.now();
+    } else {
+        delete task.completedAt;
+    }
     saveStateToStorage();
     renderWeeklyTasksList();
+    renderAllViews();
 }
 
 function deleteWeeklyTask(id) {
     state.weeklyTasks = state.weeklyTasks.filter(item => item.id !== id);
     saveStateToStorage();
     renderWeeklyTasksList();
+    renderAllViews();
 }
 
 // SVG Trajectory Graph
@@ -1711,21 +1669,9 @@ function renderTrajectoryGraph() {
     const barWidth = Math.max(16, colWidth * 0.4);
 
     let svgHtml = `
-        <!-- Gradients -->
-        <defs>
-            <linearGradient id="chart-gradient-indigo-purple" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="var(--color-accent-purple)" />
-                <stop offset="100%" stop-color="var(--color-primary)" />
-            </linearGradient>
-            <linearGradient id="chart-gradient-cyan" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="var(--color-accent-cyan)" />
-                <stop offset="100%" stop-color="var(--color-primary)" />
-            </linearGradient>
-        </defs>
-        
         <!-- Y Axis Gridline (100% Target Goal) -->
-        <line x1="${paddingLeft}" y1="${paddingTop}" x2="${svgWidth - paddingRight}" y2="${paddingTop}" stroke="rgba(99, 102, 241, 0.15)" stroke-dasharray="3,3" stroke-width="1" />
-        <text x="${paddingLeft - 6}" y="${paddingTop + 4}" font-family="Outfit" font-size="9px" fill="var(--color-primary)" text-anchor="end">100%</text>
+        <line x1="${paddingLeft}" y1="${paddingTop}" x2="${svgWidth - paddingRight}" y2="${paddingTop}" stroke="var(--border-color)" stroke-dasharray="3,3" stroke-width="1" />
+        <text x="${paddingLeft - 6}" y="${paddingTop + 4}" font-family="var(--font-sans)" font-size="9px" fill="var(--text-secondary)" text-anchor="end">100%</text>
         
         <!-- Base line -->
         <line x1="${paddingLeft}" y1="${svgHeight - paddingBottom}" x2="${svgWidth - paddingRight}" y2="${svgHeight - paddingBottom}" stroke="var(--border-color)" stroke-width="1" />
@@ -1748,98 +1694,42 @@ function renderTrajectoryGraph() {
         `;
 
         if (fillHeight > 0) {
-            // Filled bar (gradient fill)
-            const fillGradient = pct >= 100 ? "url(#chart-gradient-cyan)" : "url(#chart-gradient-indigo-purple)";
+            // Filled bar (solid green color)
+            const fillCol = "var(--color-success)";
             svgHtml += `
-                <rect class="chart-bar-rect" x="${barLeft}" y="${barY}" width="${barWidth}" height="${fillHeight}" fill="${fillGradient}" rx="3" />
+                <rect class="chart-bar-rect" x="${barLeft}" y="${barY}" width="${barWidth}" height="${fillHeight}" fill="${fillCol}" rx="2" />
             `;
         }
 
         // Percentage text label above bar
         svgHtml += `
-            <text class="chart-text-pct" x="${colCenter}" y="${barY - 6}" fill="${pct >= 100 ? 'var(--color-accent-cyan)' : 'var(--text-secondary)'}">${pct}%</text>
+            <text class="chart-text-pct" x="${colCenter}" y="${barY - 6}" fill="var(--text-secondary)" font-family="var(--font-sans)">${pct}%</text>
         `;
 
         // Weekday X-axis text label
         svgHtml += `
-            <text class="chart-text-lbl" x="${colCenter}" y="${svgHeight - 4}">${label}</text>
+            <text class="chart-text-lbl" x="${colCenter}" y="${svgHeight - 4}" font-family="var(--font-sans)">${label}</text>
         `;
     }
 
     svg.innerHTML = svgHtml;
 }
 
-// Fictional quotes for suggestion cards
-async function injectFictionalQuote(task) {
-    const quoteContainerId = "character-quote-container";
-    
-    // Remove previous quote box if any
-    let quoteBox = document.getElementById(quoteContainerId);
-    if (quoteBox) quoteBox.remove();
-
-    // Create quote box
-    quoteBox = document.createElement("div");
-    quoteBox.id = quoteContainerId;
-    quoteBox.className = "character-quote-box";
-    quoteBox.innerHTML = `<strong>${state.settings.favCharacter || "Yoda"}</strong><em>"Loading words of wisdom..."</em>`;
-    
-    // Insert before the action buttons in the suggestion card
-    const cardActions = document.querySelector(".suggestion-card .card-actions");
-    cardActions.parentNode.insertBefore(quoteBox, cardActions);
-
-    const character = state.settings.favCharacter || "Yoda";
-    const vibe = state.settings.motivationVibe || "stoic";
-    const apiKey = state.settings.geminiApiKey;
-
-    if (!apiKey) {
-        // Local fallback quotes if no API Key
-        const localQuotes = {
-            "yoda": `Do or do not. There is no try. Conquer "${task.name}", you must. Strong in the force, you will become!`,
-            "batman": `It's not who I am underneath, but what I do that defines me. Stop procrastinating and complete "${task.name}". The city needs you.`,
-            "gandalf": `All we have to decide is what to do with the time that is given us. Complete "${task.name}" now, my friend. A wizard is never late.`,
-            "iron man": `Sometimes you gotta run before you can walk. Let's build something great. Starting with "${task.name}". Jarvis, cue the music.`
-        };
-
-        const charKey = character.toLowerCase();
-        let fallbackText = `Focus on "${task.name}". It is the logical next step. Do not delay!`;
-        
-        for (const [key, quote] of Object.entries(localQuotes)) {
-            if (charKey.includes(key)) {
-                fallbackText = quote;
-                break;
-            }
-        }
-
-        quoteBox.innerHTML = `<strong>${character}</strong>"${fallbackText}"`;
-        return;
-    }
-
-    try {
-        const prompt = `Act as ${character}. Write a short, highly motivating quote or sentence in their exact voice/speech pattern encouraging the user to do their current task: "${task.name}".
-The vibe style should be: "${vibe}".
-Keep it under 110 characters. Do not wrap in quotation marks. Do not output anything else. Just the quote in character.`;
-
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-        const response = await fetch(apiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            const quoteText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (quoteText) {
-                quoteBox.innerHTML = `<strong>${character}</strong>"${quoteText.trim()}"`;
-                return;
-            }
-        }
-        quoteBox.innerHTML = `<strong>${character}</strong>"Focus, you must. Achieve "${task.name}"!"`;
-    } catch (err) {
-        console.warn("Fictional quote AI fetch failed:", err);
-        quoteBox.innerHTML = `<strong>${character}</strong>"Focus, you must. Achieve "${task.name}"!"`;
-    }
-}
+const MOTIVATIONAL_QUOTES = [
+    "Well done. You chose action over distraction. Keep this momentum.",
+    "One down. The version of you that did this is stronger than the one that hesitated.",
+    "You didn't feel like starting, but you did it anyway. That's discipline.",
+    "The resistance was real, but you broke it. Respect the effort.",
+    "No fanfare needed. You showed up, did the work, and got it done. Next.",
+    "Decisions shape destiny. You made the right choice for the last focus block.",
+    "Discipline is choosing between what you want now and what you want most. You chose the latter.",
+    "Another brick in the wall of your competence. Keep building.",
+    "The sweat of execution is sweeter than the comfort of procrastination. Well finished.",
+    "Excellent. You resisted the urge to quit. That's how resilience is built.",
+    "You conquered this task. Every finished job is a promise kept to yourself.",
+    "Concentration is the secret of strength. You proved your strength today.",
+    "The best way to finish is simply to begin, and you've successfully completed the circle."
+];
 
 // Monthly Goals logic
 function handleAddMonthlyGoalSubmit(e) {
@@ -1858,7 +1748,9 @@ function handleAddMonthlyGoalSubmit(e) {
     const newItem = {
         id: "goal-" + Date.now(),
         name: name,
-        date: dateStr
+        date: dateStr,
+        completed: false,
+        completedAt: null
     };
 
     if (!state.monthlyGoals) state.monthlyGoals = [];
@@ -1869,6 +1761,7 @@ function handleAddMonthlyGoalSubmit(e) {
     dateInput.value = "";
 
     renderMonthlyGoalsList();
+    renderAllViews();
     showToast("Added monthly goal!");
 }
 
@@ -1918,12 +1811,17 @@ function renderMonthlyGoalsList() {
             }
         }
 
+        const isCompleted = goal.completed === true;
+
         const div = document.createElement("div");
-        div.className = "goal-item";
+        div.className = `goal-item ${isCompleted ? 'completed' : ''}`;
         div.innerHTML = `
             <div class="goal-item-top">
-                <span class="goal-item-name">${goal.name}</span>
-                <span class="goal-item-days ${warningClass}">${daysStr}</span>
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                    <input type="checkbox" class="goal-item-checkbox" ${isCompleted ? 'checked' : ''}>
+                    <span class="goal-item-name" style="${isCompleted ? 'text-decoration: line-through; color: var(--text-muted);' : ''}">${goal.name}</span>
+                </div>
+                <span class="goal-item-days ${isCompleted ? '' : warningClass}">${isCompleted ? 'Completed 🎉' : daysStr}</span>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
                 <span class="goal-item-date">📅 Target: ${deadline.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' })}</span>
@@ -1933,6 +1831,12 @@ function renderMonthlyGoalsList() {
             </div>
         `;
 
+        // Checkbox event
+        div.querySelector(".goal-item-checkbox").addEventListener("change", () => {
+            toggleMonthlyGoal(goal.id);
+        });
+
+        // Delete event
         div.querySelector(".delete-btn").addEventListener("click", () => {
             deleteMonthlyGoal(goal.id);
         });
@@ -1945,6 +1849,7 @@ function deleteMonthlyGoal(id) {
     state.monthlyGoals = state.monthlyGoals.filter(goal => goal.id !== id);
     saveStateToStorage();
     renderMonthlyGoalsList();
+    renderAllViews();
 }
 
 // Priority Task Reminders check
@@ -1982,106 +1887,186 @@ function checkPriorityTaskReminders() {
     showToast(alertMessage, true);
 }
 
-// Brainstorm Helper
-function populateBrainstormTaskSelect() {
-    const select = document.getElementById("brainstorm-task-select");
-    if (!select) return;
-
-    const currentVal = select.value;
-    select.innerHTML = `<option value="">-- Choose a Task --</option>`;
-
-    state.tasks.forEach(task => {
-        select.innerHTML += `<option value="${task.id}">${task.name} (${task.duration}m)</option>`;
-    });
-
-    if (state.tasks.some(t => t.id === currentVal)) {
-        select.value = currentVal;
-    }
-}
-
-async function handleBrainstormSubmit() {
-    const select = document.getElementById("brainstorm-task-select");
-    const resultBox = document.getElementById("brainstorm-result-box");
-    
-    if (!select || !resultBox) return;
-
-    const taskId = select.value;
-    if (!taskId) {
-        showToast("Please choose a task first.", true);
-        return;
-    }
-
-    const task = state.tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    resultBox.innerHTML = "Thinking... Analyzing task breakdown...";
-    resultBox.classList.remove("hidden");
-
-    const apiKey = state.settings.geminiApiKey;
-
-    if (!apiKey) {
-        // Local mock brainstorm fallback
-        setTimeout(() => {
-            resultBox.innerHTML = `
-                <div style="margin-bottom: 6px; font-weight: 600; color: var(--color-primary);">Offline Breakdown for "${task.name}":</div>
-                <div class="brainstorm-item"><span class="brainstorm-item-num">1.</span> Split the task into 3 manageable chunks of 5-15 mins each.</div>
-                <div class="brainstorm-item"><span class="brainstorm-item-num">2.</span> Clear your workspace, close social media tabs, and set a clean environment.</div>
-                <div class="brainstorm-item"><span class="brainstorm-item-num">3.</span> Take the first action step immediately without overthinking.</div>
-                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 8px; font-style: italic;">💡 Configure a Gemini API Key in Settings to get customized AI breakdowns.</div>
-            `;
-        }, 1000);
-        return;
-    }
-
-    try {
-        const prompt = `You are a personal productivity assistant. Break down the following task into 3-4 highly actionable, sequential, and bite-sized sub-steps:
-Task Name: "${task.name}"
-Category: "${task.category}"
-Target Duration: ${task.duration} minutes
-Priority: ${task.priority}
-
-Please output the result in plain text format containing only the step lines. Format each line exactly like:
-1. First action step
-2. Second action step
-Do not output any introductory or concluding text. Just the lines.`;
-
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-        const response = await fetch(apiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const message = errorData.error?.message || `HTTP ${response.status}`;
-            throw new Error(`Gemini Server: ${message}`);
-        }
-
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!text) {
-            throw new Error("No text returned by API");
-        }
-
-        // Render steps
-        const lines = text.trim().split("\n").filter(l => l.trim().length > 0);
-        let html = `<div style="margin-bottom: 8px; font-weight: 600; color: var(--color-accent-cyan);">Action Steps for "${task.name}":</div>`;
-        
-        lines.forEach(line => {
-            const cleaned = line.replace(/^\d+[\.\-\s]+/, "").trim();
-            const num = line.match(/^\d+/);
-            const numStr = num ? num[0] : "*";
-            html += `<div class="brainstorm-item"><span class="brainstorm-item-num">${numStr}.</span> ${cleaned}</div>`;
-        });
-
-        resultBox.innerHTML = html;
-    } catch (err) {
-        console.error("Brainstorm failed:", err);
-        resultBox.innerHTML = `<span style="color:var(--color-danger);">Failed to connect to AI: ${err.message}</span>`;
-    }
-}
+// AI Brainstorm Helper removed
 
 // Start the application when the DOM is fully parsed and loaded
 window.addEventListener("DOMContentLoaded", initApp);
+
+// ==========================================================================
+// Theme Toggles, Monthly Goals checklists & Heatmap helpers
+// ==========================================================================
+
+function toggleTheme() {
+    if (document.body.classList.contains("light-mode")) {
+        document.body.classList.remove("light-mode");
+        localStorage.setItem("tellmewhattodo_theme", "dark");
+    } else {
+        document.body.classList.add("light-mode");
+        localStorage.setItem("tellmewhattodo_theme", "light");
+    }
+    updateThemeToggleUI();
+}
+
+function updateThemeToggleUI() {
+    const btn = document.getElementById("theme-toggle-btn");
+    const icon = document.getElementById("theme-toggle-icon");
+    const text = document.getElementById("theme-toggle-text");
+    if (!btn) return;
+
+    if (document.body.classList.contains("light-mode")) {
+        if (icon) icon.textContent = "🌙";
+        if (text) text.textContent = "Dark Mode";
+        btn.title = "Switch to Dark Mode";
+    } else {
+        if (icon) icon.textContent = "☀️";
+        if (text) text.textContent = "Light Mode";
+        btn.title = "Switch to Light Mode";
+    }
+}
+
+function toggleMonthlyGoal(id) {
+    const idx = state.monthlyGoals.findIndex(g => g.id === id);
+    if (idx === -1) return;
+    const goal = state.monthlyGoals[idx];
+    goal.completed = !goal.completed;
+    if (goal.completed) {
+        goal.completedAt = Date.now();
+    } else {
+        delete goal.completedAt;
+    }
+    saveStateToStorage();
+    renderMonthlyGoalsList();
+    renderAllViews();
+}
+
+function renderContributionCalendar() {
+    const container = document.getElementById("contrib-calendar-wrapper");
+    if (!container) return;
+
+    // 1. Gather completions by date
+    const completions = {};
+    
+    // Daily completed tasks
+    state.history.forEach(item => {
+        if (item.completedAt) {
+            const dateStr = getLocalDateString(new Date(item.completedAt));
+            completions[dateStr] = (completions[dateStr] || 0) + 1;
+        }
+    });
+
+    // Weekly tasks completed
+    state.weeklyTasks.forEach(item => {
+        if (item.completed && item.completedAt) {
+            const dateStr = getLocalDateString(new Date(item.completedAt));
+            completions[dateStr] = (completions[dateStr] || 0) + 1;
+        }
+    });
+
+    // Monthly goals completed
+    state.monthlyGoals.forEach(item => {
+        if (item.completed && item.completedAt) {
+            const dateStr = getLocalDateString(new Date(item.completedAt));
+            completions[dateStr] = (completions[dateStr] || 0) + 1;
+        }
+    });
+
+    // 2. Setup date bounds: Start 52 weeks ago (Sunday), End current week Saturday (total 53 weeks = 371 cells)
+    const today = new Date();
+    const todayDay = today.getDay(); // 0 is Sunday, 6 is Saturday
+    
+    // Start date is 52 weeks ago aligning to Sunday
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - (52 * 7 + todayDay));
+    startDate.setHours(0, 0, 0, 0);
+
+    // 3. Generate the columns of weeks
+    let columnsHtml = '';
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthPositions = []; // Array of { colIndex, name }
+    let lastMonth = -1;
+
+    for (let w = 0; w < 53; w++) {
+        let colCellsHtml = '';
+        let colMonth = -1;
+
+        for (let d = 0; d < 7; d++) {
+            const cellDate = new Date(startDate);
+            cellDate.setDate(startDate.getDate() + (w * 7 + d));
+            
+            const dateStr = getLocalDateString(cellDate);
+            const count = completions[dateStr] || 0;
+            
+            // Determine level (0 to 5)
+            let level = 0;
+            if (count > 0) {
+                level = Math.min(5, count);
+            }
+            
+            const formattedDate = cellDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' });
+            const tooltipText = count === 1 
+                ? `1 completion on ${formattedDate}`
+                : `${count} completions on ${formattedDate}`;
+
+            // We only show coloring for dates <= today. Future dates remain level 0.
+            const isFuture = cellDate > today;
+            const currentLevel = isFuture ? 0 : level;
+
+            colCellsHtml += `<div class="contrib-cell" data-level="${currentLevel}" title="${tooltipText}"></div>`;
+            
+            if (d === 0) {
+                colMonth = cellDate.getMonth();
+            }
+        }
+
+        // Track month label position
+        if (colMonth !== lastMonth) {
+            monthPositions.push({ colIndex: w, name: months[colMonth] });
+            lastMonth = colMonth;
+        }
+
+        columnsHtml += `<div class="contrib-column">${colCellsHtml}</div>`;
+    }
+
+    // Render month labels row
+    let monthsHtml = '';
+    monthPositions.forEach((pos, idx) => {
+        // Only render month labels that don't overlap too closely
+        const leftPercent = (pos.colIndex / 53) * 100;
+        monthsHtml += `<span class="contrib-month-label" style="left: ${leftPercent}%">${pos.name}</span>`;
+    });
+
+    // 4. Assemble full wrapper
+    container.innerHTML = `
+        <div class="contrib-grid-wrapper">
+            <div class="contrib-wdays">
+                <span></span>
+                <span>Mon</span>
+                <span></span>
+                <span>Wed</span>
+                <span></span>
+                <span>Fri</span>
+                <span></span>
+            </div>
+            <div class="contrib-heatmap-body">
+                <div class="contrib-months">
+                    ${monthsHtml}
+                </div>
+                <div class="contrib-columns-container">
+                    ${columnsHtml}
+                </div>
+            </div>
+        </div>
+        <div class="contrib-legend">
+            <span>Less</span>
+            <div class="contrib-legend-cells">
+                <div class="contrib-legend-cell contrib-cell" data-level="0"></div>
+                <div class="contrib-legend-cell contrib-cell" data-level="1"></div>
+                <div class="contrib-legend-cell contrib-cell" data-level="2"></div>
+                <div class="contrib-legend-cell contrib-cell" data-level="3"></div>
+                <div class="contrib-legend-cell contrib-cell" data-level="4"></div>
+                <div class="contrib-legend-cell contrib-cell" data-level="5"></div>
+            </div>
+            <span>More</span>
+        </div>
+    `;
+}
