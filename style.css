@@ -4,118 +4,122 @@
 
 /* Design Tokens & Variables */
 :root {
-    /* Neumorphic Dark Mode (Default) - Cozy Dark Sepia (Slightly lighter deep space) */
-    --color-bg-deep: #2d2925;
-    --color-bg-sidebar: #1e1b18;
-    --color-bg-card: #2d2925;
-    --color-bg-card-hover: #38332e;
-    --color-bg-modal: #2d2925;
+    /* Cyberpunk Dark Blue / Techno Vibe */
+    --color-bg-deep: #060913;      /* Deep space black-blue */
+    --color-bg-sidebar: #0a0e1a;   /* Slightly lighter space blue */
+    --color-bg-card: #0e1428;      /* Sleek dark slate blue */
+    --color-bg-card-hover: #151e3d;/* Slate blue hover */
+    --color-bg-modal: #0e1428;
     
-    --color-primary: #f4f1ea; /* Creamy White */
-    --color-primary-hover: #eae6db;
-    --color-primary-glow: rgba(244, 241, 234, 0.1);
+    --color-primary: #00f2fe;      /* Neon Cyan */
+    --color-primary-hover: #00d5e0;
+    --color-primary-glow: rgba(0, 242, 254, 0.15);
     
-    --color-accent-purple: #f4f1ea;
-    --color-accent-purple-glow: rgba(244, 241, 234, 0.1);
+    --color-accent-purple: #9f7aea;/* Neon Purple */
+    --color-accent-purple-glow: rgba(159, 122, 234, 0.15);
     
-    --color-accent-cyan: #eae6db;
+    --color-accent-cyan: #00f2fe;
     
-    --color-success: #10b981; /* Green remains for trajectories/heatmap cells */
-    --color-success-hover: #059669;
-    --color-success-glow: rgba(16, 185, 129, 0.2);
+    --color-success: #00ff88;      /* Neon Green */
+    --color-success-hover: #00e577;
+    --color-success-glow: rgba(0, 255, 136, 0.15);
     
-    --color-danger: #e03e3e;
-    --color-danger-hover: #c92a2a;
-    --color-danger-glow: rgba(224, 62, 62, 0.2);
+    --color-danger: #ff0055;       /* Neon Pink */
+    --color-danger-hover: #e6004c;
+    --color-danger-glow: rgba(255, 0, 85, 0.15);
     
-    --color-warning: #dfab01;
+    --color-warning: #ffd700;      /* Neon Gold */
     
-    --text-main: #f4f1ea;
-    --text-secondary: #b0a79e;
-    --text-muted: #6e655d;
+    --text-main: #f1f5f9;          /* Bright white-slate */
+    --text-secondary: #94a3b8;     /* Muted slate */
+    --text-muted: #475569;         /* Dark muted slate */
     
-    --border-color: transparent;
-    --border-color-hover: transparent;
-    --border-color-active: transparent;
+    --border-color: rgba(0, 242, 254, 0.08); /* Cyber cyan border */
+    --border-color-hover: rgba(0, 242, 254, 0.25);
+    --border-color-active: rgba(0, 242, 254, 0.4);
     
-    --shadow-dark: #1b1816;
-    --shadow-light: #3f3a34;
+    --shadow-dark: rgba(0, 0, 0, 0.65);
+    --shadow-light: rgba(255, 255, 255, 0.01);
     
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     
-    --shadow-sm: 2px 2px 6px var(--shadow-dark), -2px -2px 6px var(--shadow-light);
-    --shadow-md: 5px 5px 14px var(--shadow-dark), -5px -5px 14px var(--shadow-light);
-    --shadow-lg: 8px 8px 22px var(--shadow-dark), -8px -8px 22px var(--shadow-light);
-    --shadow-glow: none;
+    --shadow-sm: 0 2px 8px var(--shadow-dark);
+    --shadow-md: 0 4px 20px var(--shadow-dark);
+    --shadow-lg: 0 8px 30px var(--shadow-dark), 0 0 15px rgba(0, 242, 254, 0.05);
+    --shadow-glow: 0 0 15px rgba(0, 242, 254, 0.15);
     
-    --transition-smooth: all 0.2s ease;
+    --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-quick: all 0.1s ease;
     --border-radius-lg: 12px;
     --border-radius-md: 8px;
     --border-radius-sm: 6px;
 
-    /* Badge Variables - Dark Mode */
-    --badge-cat-bg: rgba(244, 241, 234, 0.08);
-    --badge-cat-text: #eae6db;
-    --badge-high-bg: rgba(224, 62, 62, 0.18);
-    --badge-high-text: #ff8c8c;
-    --badge-med-bg: rgba(223, 171, 1, 0.18);
-    --badge-med-text: #ffe066;
-    --badge-low-bg: rgba(16, 185, 129, 0.18);
-    --badge-low-text: #8effb1;
-    --badge-src-bg: rgba(244, 241, 234, 0.08);
-    --badge-src-text: #eae6db;
+    /* Badge Variables - Techno Dark */
+    --badge-cat-bg: rgba(0, 242, 254, 0.08);
+    --badge-cat-text: #00f2fe;
+    --badge-high-bg: rgba(255, 0, 85, 0.15);
+    --badge-high-text: #ff4d88;
+    --badge-med-bg: rgba(255, 215, 0, 0.15);
+    --badge-med-text: #ffd700;
+    --badge-low-bg: rgba(0, 255, 136, 0.15);
+    --badge-low-text: #66ffb3;
+    --badge-src-bg: rgba(159, 122, 234, 0.08);
+    --badge-src-text: #b794f4;
 }
 
 body.light-mode {
-    /* Neumorphic Light Mode - Cozy Light Cream (Slightly darker cream/tan) */
-    --color-bg-deep: #ded9cf;
-    --color-bg-sidebar: #d2ccc0;
-    --color-bg-card: #ded9cf;
-    --color-bg-card-hover: #d4cebf;
-    --color-bg-modal: #ded9cf;
+    /* Cyberpunk Light Mode - Clean Slate Teal */
+    --color-bg-deep: #f8fafc;
+    --color-bg-sidebar: #f1f5f9;
+    --color-bg-card: #ffffff;
+    --color-bg-card-hover: #f8fafc;
+    --color-bg-modal: #ffffff;
     
-    --color-primary: #3d352b; /* Warm dark sepia/charcoal */
-    --color-primary-hover: #2c251e;
-    --color-primary-glow: rgba(61, 53, 43, 0.1);
+    --color-primary: #0f172a;       /* Deep slate */
+    --color-primary-hover: #1e293b;
+    --color-primary-glow: rgba(15, 23, 42, 0.08);
     
-    --color-accent-purple: #3d352b;
-    --color-accent-purple-glow: rgba(61, 53, 43, 0.1);
+    --color-accent-purple: #7c3aed;
+    --color-accent-purple-glow: rgba(124, 58, 237, 0.08);
     
-    --color-accent-cyan: #2c251e;
+    --color-accent-cyan: #0ea5e9;   /* Lighter cyan */
     
     --color-success: #10b981;
     --color-success-hover: #059669;
-    --color-success-glow: rgba(16, 185, 129, 0.15);
+    --color-success-glow: rgba(16, 185, 129, 0.1);
     
-    --color-danger: #d44c47;
-    --color-danger-hover: #bc3b36;
-    --color-danger-glow: rgba(212, 76, 71, 0.15);
+    --color-danger: #ef4444;
+    --color-danger-hover: #dc2626;
+    --color-danger-glow: rgba(239, 68, 68, 0.1);
     
-    --color-warning: #dfab01;
+    --color-warning: #f59e0b;
     
-    --text-main: #2e2823;
-    --text-secondary: #665c54;
-    --text-muted: #7c7269; /* Slightly darker muted text for readability in light mode */
+    --text-main: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
     
-    --border-color: transparent;
-    --border-color-hover: transparent;
-    --border-color-active: transparent;
+    --border-color: #e2e8f0;
+    --border-color-hover: #cbd5e1;
+    --border-color-active: #94a3b8;
     
-    --shadow-dark: #d5cfc2;
-    --shadow-light: #fdfbf7;
+    --shadow-dark: rgba(15, 23, 42, 0.06);
+    --shadow-light: rgba(255, 255, 255, 0.8);
+
+    --shadow-sm: 0 1px 3px var(--shadow-dark);
+    --shadow-md: 0 4px 6px -1px var(--shadow-dark), 0 2px 4px -1px var(--shadow-dark);
+    --shadow-lg: 0 10px 15px -3px var(--shadow-dark), 0 4px 6px -2px var(--shadow-dark);
 
     /* Badge Variables - Light Mode */
-    --badge-cat-bg: rgba(61, 53, 43, 0.08);
-    --badge-cat-text: #3d352b;
-    --badge-high-bg: rgba(212, 76, 71, 0.15);
-    --badge-high-text: #b82520;
-    --badge-med-bg: rgba(223, 171, 1, 0.15);
-    --badge-med-text: #8a6500;
-    --badge-low-bg: rgba(16, 185, 129, 0.15);
-    --badge-low-text: #0b704d;
-    --badge-src-bg: rgba(61, 53, 43, 0.08);
-    --badge-src-text: #3d352b;
+    --badge-cat-bg: rgba(15, 23, 42, 0.05);
+    --badge-cat-text: #0f172a;
+    --badge-high-bg: rgba(239, 68, 68, 0.1);
+    --badge-high-text: #b91c1c;
+    --badge-med-bg: rgba(245, 158, 11, 0.1);
+    --badge-med-text: #b45309;
+    --badge-low-bg: rgba(16, 185, 129, 0.1);
+    --badge-low-text: #047857;
+    --badge-src-bg: rgba(124, 58, 237, 0.05);
+    --badge-src-text: #6d28d9;
 }
 
 /* Reset & Base Styles */
@@ -159,7 +163,7 @@ body {
 
 /* Sidebar Navigation */
 .sidebar {
-    width: 260px;
+    width: 200px;
     background-color: var(--color-bg-sidebar);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -293,7 +297,7 @@ body {
 
 /* Main Content Area */
 .main-content {
-    margin-left: 260px;
+    margin-left: 200px;
     flex-grow: 1;
     min-height: 100vh;
     padding: 30px 40px 60px 40px;
@@ -390,17 +394,19 @@ body {
 /* Cards (Neumorphic design) */
 .card {
     background-color: var(--color-bg-card);
-    border: none;
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius-lg);
     padding: 24px;
     box-shadow: var(--shadow-md);
     position: relative;
     overflow: hidden;
-    transition: box-shadow 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card:hover {
     box-shadow: var(--shadow-lg);
+    border-color: var(--border-color-hover);
+    transform: translateY(-2px);
 }
 
 .card h3 {
@@ -411,31 +417,46 @@ body {
 }
 
 /* Dashboard Layout & Cards */
+/* Dashboard Layout & Cards */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-flow: row dense;
     gap: 24px;
     align-items: start;
     margin-bottom: 24px;
 }
 
-.dashboard-focus-col {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+/* Draggable & Size Rules */
+.draggable-block {
+    cursor: grab;
+    user-select: none;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.dashboard-side-col {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+.draggable-block:active {
+    cursor: grabbing;
 }
 
-.dashboard-bottom-row {
-    display: grid;
-    grid-template-columns: 1fr 1.3fr;
-    gap: 24px;
-    margin-top: 24px;
+.draggable-block.dragging {
+    opacity: 0.35;
+    transform: scale(0.98);
+    border: 2px dashed var(--color-primary) !important;
+    box-shadow: none !important;
+}
+
+.draggable-block.drag-over {
+    border: 2px solid var(--color-accent-purple) !important;
+    box-shadow: 0 0 15px var(--color-accent-purple-glow) !important;
+}
+
+/* Card sizes */
+#activity-heatmap, #trajectory-chart {
+    grid-column: span 2;
+}
+
+#focus-engine, #focus-status, #side-quest-container, #extracurricular-container, #anchors-container, #personal-bests-container {
+    grid-column: span 1;
 }
 
 /* CTA Card */
@@ -1404,8 +1425,13 @@ select option {
     .dashboard-grid {
         grid-template-columns: 1fr;
     }
+    #activity-heatmap, #trajectory-chart {
+        grid-column: span 1 !important;
+    }
+    #focus-engine, #focus-status, #side-quest-container, #extracurricular-container, #anchors-container, #personal-bests-container {
+        grid-column: span 1 !important;
+    }
     .summary-card {
-        grid-column: 1 / 2;
         grid-row: auto;
         min-height: auto;
     }
@@ -2155,5 +2181,112 @@ select option {
 /* Typography serif overrides */
 h1, h2, h3, .brand h1, #welcome-greeting, .timer-digital, .streak-number, .completed-task-name, .completion-container h2 {
     font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Gamification & New Dashboard Cards Styles */
+.side-quest-card, .extracurricular-card, .anchors-card, .personal-bests-card {
+    background-color: var(--color-bg-card);
+    border-radius: var(--border-radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-smooth);
+    border: 1px solid var(--border-color);
+}
+
+.side-quest-card:hover, .extracurricular-card:hover, .anchors-card:hover, .personal-bests-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+/* Side Quest details */
+.side-quest-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.quest-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.45;
+    margin-bottom: 14px;
+    color: var(--text-main);
+}
+
+.quest-completed .quest-text {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.quest-status-badge {
+    background-color: rgba(16, 185, 129, 0.12);
+    color: var(--color-success);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    text-align: center;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Extracurricular and selector styling */
+.hobby-controls select, .hobby-controls input {
+    width: 100%;
+    background-color: var(--color-bg-card-hover);
+    color: var(--text-main);
+    border: none;
+    outline: none;
+    padding: 8px 12px;
+    border-radius: var(--border-radius-sm);
+    font-family: var(--font-sans);
+    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+}
+
+.hobby-controls select:focus, .hobby-controls input:focus {
+    box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+}
+
+/* Add custom inputs */
+.add-hobby-row input, .manage-anchors-row input {
+    background-color: var(--color-bg-card-hover);
+    color: var(--text-main);
+    border: none;
+    outline: none;
+    box-shadow: inset 1px 1px 3px var(--shadow-dark), inset -1px -1px 3px var(--shadow-light);
+}
+
+/* Anchors */
+.anchor-quote-box {
+    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+}
+
+/* Custom icon-only button size */
+.btn-icon-sm {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.85rem;
+}
+
+.btn-xs {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    border-radius: var(--border-radius-sm);
+}
+
+/* Personal best list items formatting */
+.personal-bests-list > div {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.personal-bests-list > div:last-child {
+    border-bottom: none;
 }
 

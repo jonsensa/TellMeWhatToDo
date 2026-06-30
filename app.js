@@ -14,11 +14,39 @@ let state = {
     monthlyGoals: [],// Array of MonthlyGoal: { id, name, date }
     settings: {
         username: "Productive User",
-        dailyFocusTarget: 2.0 // in hours
+        dailyFocusTarget: 2.0, // in hours
+        strictMode: true,
+        dashboardOrder: [
+            "focus-engine",
+            "focus-status",
+            "side-quest-container",
+            "extracurricular-container",
+            "anchors-container",
+            "personal-bests-container",
+            "trajectory-chart",
+            "activity-heatmap"
+        ]
     },
     currentStreak: 0,
     bestStreak: 0,
     
+    // Gamification & Mindfulness states
+    sideQuest: { name: "", completed: false, date: "" },
+    personalBests: { maxStreak: 0, maxDailyFocusMins: 0, maxCompletionsInADay: 0 },
+    extracurriculars: ["Guitar Practice", "Painting", "Creative Writing", "Gardening", "Cooking Experiment", "Reading Novels"],
+    activeExtracurricular: "Guitar Practice",
+    extracurricularDuration: 30,
+    anchors: [
+        "Set a 2-minute timer to just open the file.",
+        "Clear everything off your desk except the computer.",
+        "Put on noise-cancelling headphones and listen to brown noise.",
+        "Write down the absolute next step in 3 words.",
+        "Take 3 slow deep breaths before typing.",
+        "Open a blank document and write gibberish for 1 minute.",
+        "Stand up, stretch for 60 seconds, then immediately sit back down and start."
+    ],
+    activeAnchor: "",
+
     // Transient session state (non-persistent)
     activeView: "dashboard",
     suggestedTask: null,
@@ -65,6 +93,8 @@ function initApp() {
     updateThemeToggleUI();
 
     updateDateDisplay();
+    renderDashboardLayout();
+    setupDragAndDrop();
     renderAllViews();
     checkAndUpdateStreak();
     
@@ -90,11 +120,53 @@ function loadStateFromStorage() {
             state.settings = {
                 username: "Productive User",
                 dailyFocusTarget: 2.0,
+                strictMode: true,
+                dashboardOrder: [
+                    "focus-engine",
+                    "focus-status",
+                    "side-quest-container",
+                    "extracurricular-container",
+                    "anchors-container",
+                    "personal-bests-container",
+                    "trajectory-chart",
+                    "activity-heatmap"
+                ],
                 ...(parsed.settings || {})
             };
             
+            // Fallback check if it was overwritten to undefined or is missing
+            if (!state.settings.dashboardOrder || !Array.isArray(state.settings.dashboardOrder)) {
+                state.settings.dashboardOrder = [
+                    "focus-engine",
+                    "focus-status",
+                    "side-quest-container",
+                    "extracurricular-container",
+                    "anchors-container",
+                    "personal-bests-container",
+                    "trajectory-chart",
+                    "activity-heatmap"
+                ];
+            }
+            
             state.currentStreak = parsed.currentStreak || 0;
             state.bestStreak = parsed.bestStreak || 0;
+
+            // Load new gamification fields
+            state.sideQuest = parsed.sideQuest || { name: "", completed: false, date: "" };
+            state.personalBests = parsed.personalBests || { maxStreak: parsed.bestStreak || 0, maxDailyFocusMins: 0, maxCompletionsInADay: 0 };
+            state.extracurriculars = parsed.extracurriculars || ["Guitar Practice", "Painting", "Creative Writing", "Gardening", "Cooking Experiment", "Reading Novels"];
+            state.activeExtracurricular = parsed.activeExtracurricular || "Guitar Practice";
+            state.extracurricularDuration = parsed.extracurricularDuration || 30;
+            state.anchors = parsed.anchors || [
+                "Set a 2-minute timer to just open the file.",
+                "Clear everything off your desk except the computer.",
+                "Put on noise-cancelling headphones and listen to brown noise.",
+                "Write down the absolute next step in 3 words.",
+                "Take 3 slow deep breaths before typing.",
+                "Open a blank document and write gibberish for 1 minute.",
+                "Stand up, stretch for 60 seconds, then immediately sit back down and start."
+            ];
+            state.activeAnchor = parsed.activeAnchor || "";
         } else {
             // Seed defaults
             state.tasks = [...PRESET_TASKS];
@@ -103,8 +175,34 @@ function loadStateFromStorage() {
             state.monthlyGoals = [];
             state.settings = {
                 username: "Productive User",
-                dailyFocusTarget: 2.0
+                dailyFocusTarget: 2.0,
+                strictMode: true,
+                dashboardOrder: [
+                    "focus-engine",
+                    "focus-status",
+                    "side-quest-container",
+                    "extracurricular-container",
+                    "anchors-container",
+                    "personal-bests-container",
+                    "trajectory-chart",
+                    "activity-heatmap"
+                ]
             };
+            state.sideQuest = { name: "", completed: false, date: "" };
+            state.personalBests = { maxStreak: 0, maxDailyFocusMins: 0, maxCompletionsInADay: 0 };
+            state.extracurriculars = ["Guitar Practice", "Painting", "Creative Writing", "Gardening", "Cooking Experiment", "Reading Novels"];
+            state.activeExtracurricular = "Guitar Practice";
+            state.extracurricularDuration = 30;
+            state.anchors = [
+                "Set a 2-minute timer to just open the file.",
+                "Clear everything off your desk except the computer.",
+                "Put on noise-cancelling headphones and listen to brown noise.",
+                "Write down the absolute next step in 3 words.",
+                "Take 3 slow deep breaths before typing.",
+                "Open a blank document and write gibberish for 1 minute.",
+                "Stand up, stretch for 60 seconds, then immediately sit back down and start."
+            ];
+            state.activeAnchor = "";
             saveStateToStorage();
         }
     } catch (e) {
@@ -125,7 +223,16 @@ function saveStateToStorage() {
             monthlyGoals: state.monthlyGoals,
             settings: state.settings,
             currentStreak: state.currentStreak,
-            bestStreak: state.bestStreak
+            bestStreak: state.bestStreak,
+            
+            // New fields
+            sideQuest: state.sideQuest,
+            personalBests: state.personalBests,
+            extracurriculars: state.extracurriculars,
+            activeExtracurricular: state.activeExtracurricular,
+            extracurricularDuration: state.extracurricularDuration,
+            anchors: state.anchors,
+            activeAnchor: state.activeAnchor
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (e) {
@@ -224,6 +331,15 @@ function setupEventListeners() {
     document.getElementById("timer-reset-btn").addEventListener("click", resetTimer);
     document.getElementById("timer-complete-btn").addEventListener("click", completeFocusSession);
     document.getElementById("timer-quit-btn").addEventListener("click", quitFocusSession);
+    document.getElementById("timer-add-5-btn").addEventListener("click", () => addTimerMinutes(5));
+    document.getElementById("timer-add-10-btn").addEventListener("click", () => addTimerMinutes(10));
+    document.getElementById("timer-strict-toggle").addEventListener("change", (e) => {
+        state.settings.strictMode = e.target.checked;
+        const settingsStrict = document.getElementById("settings-strict-mode");
+        if (settingsStrict) settingsStrict.checked = e.target.checked;
+        saveStateToStorage();
+        showToast(state.settings.strictMode ? "Strict mode enabled." : "Strict mode disabled.");
+    });
 
     // Modal Option Buttons (Multi-choice style toggles)
     setupOptionGridToggles("time-options");
@@ -252,6 +368,13 @@ function setupEventListeners() {
 
     // Settings Form Triggers
     document.getElementById("settings-form").addEventListener("submit", handleSettingsSubmit);
+    document.getElementById("settings-strict-mode").addEventListener("change", (e) => {
+        state.settings.strictMode = e.target.checked;
+        const timerStrict = document.getElementById("timer-strict-toggle");
+        if (timerStrict) timerStrict.checked = e.target.checked;
+        saveStateToStorage();
+        showToast(state.settings.strictMode ? "Strict mode enabled." : "Strict mode disabled.");
+    });
 
     // Backup & Data management triggers
     document.getElementById("export-data-btn").addEventListener("click", exportDataJSON);
@@ -524,11 +647,20 @@ function acceptSuggestedTask() {
     if (!state.suggestedTask) return;
 
     const task = state.suggestedTask;
-    state.focusedTask = task;
     state.suggestedTask = null; // Clear suggestion once accepted
+    startFocusOnTask(task);
+}
+
+function startFocusOnTask(task) {
+    state.focusedTask = task;
+    
+    // Sync strict mode checkbox
+    const strictToggle = document.getElementById("timer-strict-toggle");
+    if (strictToggle) strictToggle.checked = !!state.settings.strictMode;
 
     // Toggle active containers
     document.getElementById("suggestion-result-container").classList.add("hidden");
+    document.querySelector(".cta-card").classList.add("hidden");
     document.getElementById("timer-task-title").textContent = task.name;
     document.getElementById("focus-timer-container").classList.remove("hidden");
 
@@ -578,6 +710,7 @@ function acceptSuggestedTask() {
         updateTimerUI();
 
         // Run Timer loop
+        if (state.timer.intervalId) clearInterval(state.timer.intervalId);
         state.timer.intervalId = setInterval(timerTick, 1000);
 
         // Update Pause Button state (showing pause icon)
@@ -749,8 +882,8 @@ function quitFocusSession() {
 
     const task = state.focusedTask;
 
-    // If it's a self-paced task, we don't activate the lock
-    if (task.requiresTimer === false) {
+    // If it's a self-paced task or strict mode is disabled, we don't activate the lock
+    if (task.requiresTimer === false || !state.settings.strictMode) {
         const confirmQuit = confirm("Are you sure you want to cancel this focus session? No progress will be saved.");
         if (!confirmQuit) return;
         
@@ -908,6 +1041,7 @@ function checkAndUpdateStreak() {
         state.bestStreak = streakCount;
     }
 
+    updatePersonalBests();
     saveStateToStorage();
 }
 
@@ -923,7 +1057,10 @@ function renderAllViews() {
     renderDashboardStats();
 
     if (state.activeView === "dashboard") {
-        // Dashboard views updated
+        renderSideQuestCard();
+        renderExtracurricularCard();
+        renderAnchorsCard();
+        renderPersonalBestsCard();
     } else if (state.activeView === "tasks") {
         renderTasksList();
         renderWeeklyTasksList();
@@ -1400,6 +1537,7 @@ function renderHistoryStats() {
 function loadSettingsToForm() {
     document.getElementById("settings-username").value = state.settings.username;
     document.getElementById("settings-daily-target").value = state.settings.dailyFocusTarget;
+    document.getElementById("settings-strict-mode").checked = !!state.settings.strictMode;
 }
 
 function handleSettingsSubmit(e) {
@@ -1407,9 +1545,15 @@ function handleSettingsSubmit(e) {
 
     const username = document.getElementById("settings-username").value.trim() || "Productive User";
     const dailyTarget = parseFloat(document.getElementById("settings-daily-target").value) || 2.0;
+    const strictMode = document.getElementById("settings-strict-mode").checked;
 
     state.settings.username = username;
     state.settings.dailyFocusTarget = dailyTarget;
+    state.settings.strictMode = strictMode;
+
+    // Sync other checkbox
+    const timerStrict = document.getElementById("timer-strict-toggle");
+    if (timerStrict) timerStrict.checked = strictMode;
 
     saveStateToStorage();
 
@@ -1505,10 +1649,38 @@ function factoryResetData() {
         monthlyGoals: [],
         settings: {
             username: "Productive User",
-            dailyFocusTarget: 2.0
+            dailyFocusTarget: 2.0,
+            strictMode: true,
+            dashboardOrder: [
+                "focus-engine",
+                "focus-status",
+                "side-quest-container",
+                "extracurricular-container",
+                "anchors-container",
+                "personal-bests-container",
+                "trajectory-chart",
+                "activity-heatmap"
+            ]
         },
         currentStreak: 0,
         bestStreak: 0,
+        
+        sideQuest: { name: "", completed: false, date: "" },
+        personalBests: { maxStreak: 0, maxDailyFocusMins: 0, maxCompletionsInADay: 0 },
+        extracurriculars: ["Guitar Practice", "Painting", "Creative Writing", "Gardening", "Cooking Experiment", "Reading Novels"],
+        activeExtracurricular: "Guitar Practice",
+        extracurricularDuration: 30,
+        anchors: [
+            "Set a 2-minute timer to just open the file.",
+            "Clear everything off your desk except the computer.",
+            "Put on noise-cancelling headphones and listen to brown noise.",
+            "Write down the absolute next step in 3 words.",
+            "Take 3 slow deep breaths before typing.",
+            "Open a blank document and write gibberish for 1 minute.",
+            "Stand up, stretch for 60 seconds, then immediately sit back down and start."
+        ],
+        activeAnchor: "",
+
         activeView: "dashboard",
         suggestedTask: null,
         focusedTask: null,
@@ -1535,6 +1707,7 @@ function factoryResetData() {
     document.getElementById("suggestion-result-container").classList.add("hidden");
     document.querySelector(".cta-card").classList.remove("hidden");
 
+    renderDashboardLayout();
     switchView("dashboard");
     initApp();
     showToast("Application reset to default state.");
@@ -1943,14 +2116,16 @@ function renderContributionCalendar() {
     const container = document.getElementById("contrib-calendar-wrapper");
     if (!container) return;
 
-    // 1. Gather completions by date
-    const completions = {};
+    // 1. Gather daily stats (focus minutes + 15m mindfulness credit per goal/weekly task)
+    const dailyData = {};
     
-    // Daily completed tasks
+    // Tasks
     state.history.forEach(item => {
         if (item.completedAt) {
             const dateStr = getLocalDateString(new Date(item.completedAt));
-            completions[dateStr] = (completions[dateStr] || 0) + 1;
+            if (!dailyData[dateStr]) dailyData[dateStr] = { focusMins: 0, taskCount: 0, goalCount: 0 };
+            dailyData[dateStr].focusMins += item.duration || 0;
+            dailyData[dateStr].taskCount += 1;
         }
     });
 
@@ -1958,7 +2133,9 @@ function renderContributionCalendar() {
     state.weeklyTasks.forEach(item => {
         if (item.completed && item.completedAt) {
             const dateStr = getLocalDateString(new Date(item.completedAt));
-            completions[dateStr] = (completions[dateStr] || 0) + 1;
+            if (!dailyData[dateStr]) dailyData[dateStr] = { focusMins: 0, taskCount: 0, goalCount: 0 };
+            dailyData[dateStr].focusMins += 15; // 15m credit
+            dailyData[dateStr].goalCount += 1;
         }
     });
 
@@ -1966,23 +2143,24 @@ function renderContributionCalendar() {
     state.monthlyGoals.forEach(item => {
         if (item.completed && item.completedAt) {
             const dateStr = getLocalDateString(new Date(item.completedAt));
-            completions[dateStr] = (completions[dateStr] || 0) + 1;
+            if (!dailyData[dateStr]) dailyData[dateStr] = { focusMins: 0, taskCount: 0, goalCount: 0 };
+            dailyData[dateStr].focusMins += 15; // 15m credit
+            dailyData[dateStr].goalCount += 1;
         }
     });
 
-    // 2. Setup date bounds: Start 52 weeks ago (Sunday), End current week Saturday (total 53 weeks = 371 cells)
+    // 2. Setup date bounds: Start 52 weeks ago (Sunday), End current week Saturday
     const today = new Date();
-    const todayDay = today.getDay(); // 0 is Sunday, 6 is Saturday
+    const todayDay = today.getDay();
     
-    // Start date is 52 weeks ago aligning to Sunday
     const startDate = new Date();
     startDate.setDate(today.getDate() - (52 * 7 + todayDay));
     startDate.setHours(0, 0, 0, 0);
 
-    // 3. Generate the columns of weeks
+    // 3. Generate columns of weeks
     let columnsHtml = '';
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const monthPositions = []; // Array of { colIndex, name }
+    const monthPositions = [];
     let lastMonth = -1;
 
     for (let w = 0; w < 53; w++) {
@@ -1994,20 +2172,22 @@ function renderContributionCalendar() {
             cellDate.setDate(startDate.getDate() + (w * 7 + d));
             
             const dateStr = getLocalDateString(cellDate);
-            const count = completions[dateStr] || 0;
+            const stats = dailyData[dateStr] || { focusMins: 0, taskCount: 0, goalCount: 0 };
+            const totalMins = stats.focusMins;
             
-            // Determine level (0 to 5)
+            // Determine level (0 to 5) based on focus minutes
             let level = 0;
-            if (count > 0) {
-                level = Math.min(5, count);
+            if (totalMins > 0) {
+                if (totalMins <= 25) level = 1;
+                else if (totalMins <= 50) level = 2;
+                else if (totalMins <= 75) level = 3;
+                else if (totalMins <= 100) level = 4;
+                else level = 5;
             }
             
             const formattedDate = cellDate.toLocaleDateString("en-US", { month: 'short', day: 'numeric', year: 'numeric' });
-            const tooltipText = count === 1 
-                ? `1 completion on ${formattedDate}`
-                : `${count} completions on ${formattedDate}`;
+            const tooltipText = `${totalMins} focus score mins (${stats.taskCount} tasks, ${stats.goalCount} goals) on ${formattedDate}`;
 
-            // We only show coloring for dates <= today. Future dates remain level 0.
             const isFuture = cellDate > today;
             const currentLevel = isFuture ? 0 : level;
 
@@ -2018,7 +2198,6 @@ function renderContributionCalendar() {
             }
         }
 
-        // Track month label position
         if (colMonth !== lastMonth) {
             monthPositions.push({ colIndex: w, name: months[colMonth] });
             lastMonth = colMonth;
@@ -2027,15 +2206,12 @@ function renderContributionCalendar() {
         columnsHtml += `<div class="contrib-column">${colCellsHtml}</div>`;
     }
 
-    // Render month labels row
     let monthsHtml = '';
-    monthPositions.forEach((pos, idx) => {
-        // Only render month labels that don't overlap too closely
+    monthPositions.forEach((pos) => {
         const leftPercent = (pos.colIndex / 53) * 100;
         monthsHtml += `<span class="contrib-month-label" style="left: ${leftPercent}%">${pos.name}</span>`;
     });
 
-    // 4. Assemble full wrapper
     container.innerHTML = `
         <div class="contrib-grid-wrapper">
             <div class="contrib-wdays">
@@ -2057,7 +2233,7 @@ function renderContributionCalendar() {
             </div>
         </div>
         <div class="contrib-legend">
-            <span>Less</span>
+            <span>Less Focus</span>
             <div class="contrib-legend-cells">
                 <div class="contrib-legend-cell contrib-cell" data-level="0"></div>
                 <div class="contrib-legend-cell contrib-cell" data-level="1"></div>
@@ -2066,7 +2242,488 @@ function renderContributionCalendar() {
                 <div class="contrib-legend-cell contrib-cell" data-level="4"></div>
                 <div class="contrib-legend-cell contrib-cell" data-level="5"></div>
             </div>
-            <span>More</span>
+            <span>More Focus</span>
         </div>
     `;
+}
+
+/**
+ * ==========================================================================
+ * ADDED GAMIFICATION & LAYOUT FEATURES LOGIC
+ * ==========================================================================
+ */
+
+const SIDE_QUESTS = [
+    "Talk to a stranger and ask them a friendly question.",
+    "Do 10 deep, conscious breaths outside in the fresh air.",
+    "Tidy up your workspace or desk for exactly 5 minutes.",
+    "Drink a large glass of water right now to rehydrate.",
+    "Send a quick, unsolicited appreciation text to a friend.",
+    "Do a 90-second plank or stretch sequence.",
+    "Write down 3 specific things you are grateful for today.",
+    "Stand up and do a quick 3-minute physical reset/walk.",
+    "Spend 5 minutes decluttering a physical file, folder, or drawer.",
+    "Write down your absolute #1 priority for tomorrow on a sticky note."
+];
+
+function addTimerMinutes(mins) {
+    if (!state.focusedTask) {
+        showToast("No active focus session to extend.", true);
+        return;
+    }
+    state.timer.timeLeft += mins * 60;
+    state.timer.duration += mins * 60;
+    updateTimerUI();
+    showToast(`Added ${mins} minutes to focus timer.`);
+}
+
+function generateDailySideQuest() {
+    const randomIdx = Math.floor(Math.random() * SIDE_QUESTS.length);
+    state.sideQuest = {
+        name: SIDE_QUESTS[randomIdx],
+        completed: false,
+        date: getLocalDateString(new Date())
+    };
+    saveStateToStorage();
+}
+
+function completeSideQuest() {
+    if (state.sideQuest.completed) return;
+    
+    state.sideQuest.completed = true;
+    
+    // Log side quest in focus history for heatmap adjust
+    const questHistoryItem = {
+        id: "quest-" + Date.now(),
+        taskId: "side-quest",
+        name: "Side Quest: " + state.sideQuest.name,
+        duration: 15, // 15 mins focus score reward
+        category: "Health",
+        completedAt: Date.now(),
+        method: "Side Quest Complete"
+    };
+    state.history.push(questHistoryItem);
+    
+    saveStateToStorage();
+    checkAndUpdateStreak();
+    renderAllViews();
+    showToast("Daily Side Quest completed! +15m focus score logged.");
+}
+
+function rerollSideQuest() {
+    if (state.sideQuest.completed) return;
+    
+    let currentQuest = state.sideQuest.name;
+    let nextQuest = currentQuest;
+    
+    if (SIDE_QUESTS.length > 1) {
+        let attempts = 0;
+        do {
+            let randIdx = Math.floor(Math.random() * SIDE_QUESTS.length);
+            nextQuest = SIDE_QUESTS[randIdx];
+            attempts++;
+        } while (nextQuest === currentQuest && attempts < 10);
+    }
+    
+    state.sideQuest.name = nextQuest;
+    saveStateToStorage();
+    renderSideQuestCard();
+    showToast("Quest rerolled.");
+}
+
+function startHobbyFocus() {
+    const hobbyTask = {
+        id: "hobby-" + Date.now(),
+        name: "Hobby focus: " + state.activeExtracurricular,
+        duration: state.extracurricularDuration || 30,
+        priority: "low",
+        energy: "low",
+        location: "home",
+        category: "Leisure",
+        requiresTimer: true,
+        createdAt: Date.now()
+    };
+    startFocusOnTask(hobbyTask);
+}
+
+function recalculatePersonalBests() {
+    if (!state.personalBests) {
+        state.personalBests = { maxStreak: 0, maxDailyFocusMins: 0, maxCompletionsInADay: 0 };
+    }
+    
+    // 1. Streak
+    state.personalBests.maxStreak = Math.max(state.bestStreak || 0, state.currentStreak || 0);
+    
+    const focusMinsByDay = {};
+    const completionsByDay = {};
+    
+    // Tasks
+    state.history.forEach(item => {
+        const dateStr = getLocalDateString(new Date(item.completedAt));
+        focusMinsByDay[dateStr] = (focusMinsByDay[dateStr] || 0) + item.duration;
+        completionsByDay[dateStr] = (completionsByDay[dateStr] || 0) + 1;
+    });
+    
+    // Weekly
+    state.weeklyTasks.forEach(item => {
+        if (item.completed && item.completedAt) {
+            const dateStr = getLocalDateString(new Date(item.completedAt));
+            completionsByDay[dateStr] = (completionsByDay[dateStr] || 0) + 1;
+        }
+    });
+    
+    // Monthly
+    state.monthlyGoals.forEach(item => {
+        if (item.completed && item.completedAt) {
+            const dateStr = getLocalDateString(new Date(item.completedAt));
+            completionsByDay[dateStr] = (completionsByDay[dateStr] || 0) + 1;
+        }
+    });
+    
+    let maxFocus = 0;
+    let maxComps = 0;
+    
+    for (const day in focusMinsByDay) {
+        if (focusMinsByDay[day] > maxFocus) maxFocus = focusMinsByDay[day];
+    }
+    for (const day in completionsByDay) {
+        if (completionsByDay[day] > maxComps) maxComps = completionsByDay[day];
+    }
+    
+    state.personalBests.maxDailyFocusMins = Math.max(state.personalBests.maxDailyFocusMins, maxFocus);
+    state.personalBests.maxCompletionsInADay = Math.max(state.personalBests.maxCompletionsInADay, maxComps);
+    
+    saveStateToStorage();
+}
+
+function updatePersonalBests() {
+    const todayStr = getLocalDateString(new Date());
+    
+    if (!state.personalBests) {
+        recalculatePersonalBests();
+        return;
+    }
+    
+    // 1. Streak update
+    state.personalBests.maxStreak = Math.max(state.personalBests.maxStreak, state.currentStreak, state.bestStreak || 0);
+    
+    // 2. Focus Mins update
+    const todayFocusMins = state.history
+        .filter(item => getLocalDateString(new Date(item.completedAt)) === todayStr)
+        .reduce((sum, item) => sum + item.duration, 0);
+    state.personalBests.maxDailyFocusMins = Math.max(state.personalBests.maxDailyFocusMins, todayFocusMins);
+    
+    // 3. Completions update
+    const countToday = state.history.filter(h => getLocalDateString(new Date(h.completedAt)) === todayStr).length;
+    const completedWeeklyToday = state.weeklyTasks.filter(item => item.completed && item.completedAt && getLocalDateString(new Date(item.completedAt)) === todayStr).length;
+    const completedMonthlyToday = state.monthlyGoals.filter(item => item.completed && item.completedAt && getLocalDateString(new Date(item.completedAt)) === todayStr).length;
+    const totalCompletionsToday = countToday + completedWeeklyToday + completedMonthlyToday;
+    state.personalBests.maxCompletionsInADay = Math.max(state.personalBests.maxCompletionsInADay, totalCompletionsToday);
+    
+    saveStateToStorage();
+}
+
+/* RENDERING GAMIFICATION CARDS */
+
+function renderSideQuestCard() {
+    const container = document.getElementById("side-quest-container");
+    if (!container) return;
+    
+    const todayStr = getLocalDateString(new Date());
+    if (!state.sideQuest || state.sideQuest.date !== todayStr) {
+        generateDailySideQuest();
+    }
+    
+    const completedClass = state.sideQuest.completed ? "quest-completed" : "";
+    
+    container.innerHTML = `
+        <div class="side-quest-header">
+            <h3>🎯 Daily Side Quest</h3>
+            ${!state.sideQuest.completed ? `<button class="btn btn-secondary btn-icon-sm" id="reroll-quest-btn" title="Reroll quest">🔄</button>` : ''}
+        </div>
+        <div class="side-quest-body ${completedClass}">
+            <p class="quest-text">${state.sideQuest.name}</p>
+            ${state.sideQuest.completed 
+                ? `<div class="quest-status-badge">✅ Quest Cleared! (+15m Score)</div>` 
+                : `<button class="btn btn-success btn-sm btn-full" id="complete-quest-btn">Complete Quest</button>`
+            }
+        </div>
+    `;
+    
+    if (!state.sideQuest.completed) {
+        document.getElementById("complete-quest-btn").addEventListener("click", completeSideQuest);
+        document.getElementById("reroll-quest-btn").addEventListener("click", rerollSideQuest);
+    }
+}
+
+function renderExtracurricularCard() {
+    const container = document.getElementById("extracurricular-container");
+    if (!container) return;
+    
+    let optionsHtml = '';
+    state.extracurriculars.forEach(hobby => {
+        const selected = hobby === state.activeExtracurricular ? 'selected' : '';
+        optionsHtml += `<option value="${hobby}" ${selected}>${hobby}</option>`;
+    });
+
+    container.innerHTML = `
+        <h3>🎨 Daily Hobby Slot</h3>
+        <p class="description" style="margin-bottom: 12px;">Choose and track balanced extracurricular activities.</p>
+        <div class="hobby-controls" style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; gap: 8px;">
+                <select id="active-hobby-select" class="form-input" style="flex-grow: 1; padding: 6px 10px; border-radius: var(--border-radius-sm); border: none; background: var(--color-bg-card-hover); color: var(--text-main);">
+                    ${optionsHtml}
+                </select>
+                <button class="btn btn-secondary btn-icon-sm" id="cycle-hobby-btn" title="Cycle hobby" style="padding: 0 10px;">🔄</button>
+            </div>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <label style="font-size: 0.8rem; color: var(--text-secondary);">Set Duration:</label>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <input type="number" id="hobby-duration-input" min="5" max="180" value="${state.extracurricularDuration || 30}" style="width: 60px; text-align: center; padding: 4px; border-radius: var(--border-radius-sm); border: none; background: var(--color-bg-card-hover); color: var(--text-main);">
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">min</span>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary btn-sm btn-full" id="start-hobby-btn">Focus on Hobby</button>
+            
+            <div class="add-hobby-row" style="display: flex; gap: 6px; margin-top: 4px; border-top: 1px dashed var(--text-muted); padding-top: 8px;">
+                <input type="text" id="new-hobby-input" placeholder="Add custom hobby..." style="flex-grow: 1; font-size: 0.75rem; padding: 4px 8px; border-radius: var(--border-radius-sm); border: none; background: var(--color-bg-card-hover); color: var(--text-main);">
+                <button class="btn btn-secondary btn-xs" id="add-hobby-btn" style="font-size: 0.75rem; padding: 4px 8px;">Add</button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById("active-hobby-select").addEventListener("change", (e) => {
+        state.activeExtracurricular = e.target.value;
+        saveStateToStorage();
+    });
+    
+    document.getElementById("cycle-hobby-btn").addEventListener("click", () => {
+        const idx = state.extracurriculars.indexOf(state.activeExtracurricular);
+        const nextIdx = (idx + 1) % state.extracurriculars.length;
+        state.activeExtracurricular = state.extracurriculars[nextIdx];
+        saveStateToStorage();
+        renderExtracurricularCard();
+    });
+    
+    document.getElementById("hobby-duration-input").addEventListener("change", (e) => {
+        let val = parseInt(e.target.value, 10);
+        if (isNaN(val) || val < 5) val = 5;
+        if (val > 180) val = 180;
+        state.extracurricularDuration = val;
+        saveStateToStorage();
+    });
+    
+    document.getElementById("start-hobby-btn").addEventListener("click", startHobbyFocus);
+    
+    document.getElementById("add-hobby-btn").addEventListener("click", () => {
+        const input = document.getElementById("new-hobby-input");
+        const val = input.value.trim();
+        if (val) {
+            if (state.extracurriculars.includes(val)) {
+                showToast("Hobby already exists!", true);
+                return;
+            }
+            state.extracurriculars.push(val);
+            state.activeExtracurricular = val;
+            saveStateToStorage();
+            renderExtracurricularCard();
+            showToast(`Hobby "${val}" added!`);
+        }
+    });
+}
+
+function renderAnchorsCard() {
+    const container = document.getElementById("anchors-container");
+    if (!container) return;
+    
+    const anchorText = state.activeAnchor 
+        ? `<div class="anchor-quote-box" style="margin: 10px 0; padding: 12px; border-radius: var(--border-radius-sm); background: var(--color-bg-card-hover); border-left: 3px solid var(--color-success); font-style: italic; font-size: 0.9rem; color: var(--text-main); line-height: 1.4;">"${state.activeAnchor}"</div>`
+        : `<p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin: 12px 0;">No active anchor. Press below to draw one!</p>`;
+
+    container.innerHTML = `
+        <h3>⚓ Focus Anchors</h3>
+        <p class="description">Ground yourself to start work when you are feeling stuck.</p>
+        
+        ${anchorText}
+        
+        <button class="btn btn-secondary btn-sm btn-full" id="draw-anchor-btn">Draw Anchor</button>
+        
+        <div class="manage-anchors-row" style="display: flex; gap: 6px; margin-top: 8px; border-top: 1px dashed var(--text-muted); padding-top: 8px;">
+            <input type="text" id="new-anchor-input" placeholder="Add custom anchor..." style="flex-grow: 1; font-size: 0.75rem; padding: 4px 8px; border-radius: var(--border-radius-sm); border: none; background: var(--color-bg-card-hover); color: var(--text-main);">
+            <button class="btn btn-secondary btn-xs" id="add-anchor-btn" style="font-size: 0.75rem; padding: 4px 8px;">Add</button>
+        </div>
+    `;
+    
+    document.getElementById("draw-anchor-btn").addEventListener("click", () => {
+        if (state.anchors.length === 0) {
+            showToast("Your anchor vault is empty!", true);
+            return;
+        }
+        let randIdx;
+        do {
+            randIdx = Math.floor(Math.random() * state.anchors.length);
+        } while (state.anchors.length > 1 && state.anchors[randIdx] === state.activeAnchor);
+        
+        state.activeAnchor = state.anchors[randIdx];
+        saveStateToStorage();
+        renderAnchorsCard();
+        showToast("Anchor activated! Ground yourself on this.");
+    });
+    
+    document.getElementById("add-anchor-btn").addEventListener("click", () => {
+        const input = document.getElementById("new-anchor-input");
+        const val = input.value.trim();
+        if (val) {
+            if (state.anchors.includes(val)) {
+                showToast("Anchor already exists in vault!", true);
+                return;
+            }
+            state.anchors.push(val);
+            state.activeAnchor = val;
+            saveStateToStorage();
+            renderAnchorsCard();
+            showToast("New anchor added to vault!");
+        }
+    });
+}
+
+function renderPersonalBestsCard() {
+    const container = document.getElementById("personal-bests-container");
+    if (!container) return;
+    
+    if (!state.personalBests) {
+        recalculatePersonalBests();
+    }
+    
+    const totalFocusMins = state.history.reduce((sum, item) => sum + item.duration, 0);
+    const totalFocusHours = (totalFocusMins / 60).toFixed(1);
+
+    container.innerHTML = `
+        <h3>🏆 Personal Bests</h3>
+        <p class="description">Your all-time milestone focus statistics.</p>
+        <div class="personal-bests-list" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">🔥 Streak:</span>
+                <strong style="color: var(--color-warning);">${state.personalBests.maxStreak || state.bestStreak || 0} Days</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">⏱️ Focus / Day:</span>
+                <strong style="color: var(--color-success);">${state.personalBests.maxDailyFocusMins || 0} mins</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px;">
+                <span style="color: var(--text-secondary);">🚀 Daily Items:</span>
+                <strong>${state.personalBests.maxCompletionsInADay || 0} completed</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding-top: 2px;">
+                <span style="color: var(--text-secondary);">🌟 Cumulative:</span>
+                <strong>${totalFocusHours} hours</strong>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * DASHBOARD MODULAR LAYOUT & DRAG AND DROP
+ */
+function renderDashboardLayout() {
+    const container = document.getElementById("dashboard-widgets-container");
+    if (!container) return;
+
+    const order = state.settings.dashboardOrder || [
+        "focus-engine",
+        "focus-status",
+        "side-quest-container",
+        "extracurricular-container",
+        "anchors-container",
+        "personal-bests-container",
+        "trajectory-chart",
+        "activity-heatmap"
+    ];
+
+    order.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            container.appendChild(el);
+        }
+    });
+}
+
+function setupDragAndDrop() {
+    const container = document.getElementById("dashboard-widgets-container");
+    if (!container) return;
+
+    let draggedId = null;
+
+    container.addEventListener("dragstart", (e) => {
+        const target = e.target.closest(".draggable-block");
+        if (target) {
+            draggedId = target.id;
+            target.classList.add("dragging");
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", target.id);
+        }
+    });
+
+    container.addEventListener("dragend", (e) => {
+        const target = e.target.closest(".draggable-block");
+        if (target) {
+            target.classList.remove("dragging");
+        }
+        document.querySelectorAll(".draggable-block").forEach(b => b.classList.remove("drag-over"));
+    });
+
+    container.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const target = e.target.closest(".draggable-block");
+        if (target && target.id !== draggedId) {
+            target.classList.add("drag-over");
+        }
+    });
+
+    container.addEventListener("dragleave", (e) => {
+        const target = e.target.closest(".draggable-block");
+        if (target) {
+            target.classList.remove("drag-over");
+        }
+    });
+
+    container.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const target = e.target.closest(".draggable-block");
+        if (target && draggedId && target.id !== draggedId) {
+            target.classList.remove("drag-over");
+            
+            const order = state.settings.dashboardOrder || [
+                "focus-engine",
+                "focus-status",
+                "side-quest-container",
+                "extracurricular-container",
+                "anchors-container",
+                "personal-bests-container",
+                "trajectory-chart",
+                "activity-heatmap"
+            ];
+
+            const draggedIdx = order.indexOf(draggedId);
+            const targetIdx = order.indexOf(target.id);
+
+            if (draggedIdx !== -1 && targetIdx !== -1) {
+                order[draggedIdx] = target.id;
+                order[targetIdx] = draggedId;
+
+                state.settings.dashboardOrder = order;
+                saveStateToStorage();
+                
+                renderDashboardLayout();
+                
+                // Redraw line chart and heatmap to handle layout shifts cleanly
+                renderTrajectoryGraph();
+                renderContributionCalendar();
+                showToast("Dashboard rearranged.");
+            }
+        }
+    });
 }
