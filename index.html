@@ -16,7 +16,7 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="brand">
-                <div class="brand-icon">?</div>
+                <div class="brand-icon">🎯</div>
                 <h1>TellMeWhatToDo</h1>
             </div>
 
@@ -60,9 +60,14 @@
         <main class="main-content">
             <!-- Top Header -->
             <header class="top-header">
-                <div class="header-welcome">
-                    <h2 id="welcome-greeting">Hello! Ready to focus?</h2>
-                    <p id="current-date-display">Thursday, June 4</p>
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <button class="btn btn-icon sidebar-toggle-btn" id="sidebar-collapse-btn" title="Toggle Sidebar" style="border: 1px solid var(--border-color); background-color: var(--color-bg-card); box-shadow: var(--shadow-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--border-radius-md); transition: var(--transition-smooth);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <div class="header-welcome">
+                        <h2 id="welcome-greeting">Hello! Ready to focus?</h2>
+                        <p id="current-date-display">Thursday, June 4</p>
+                    </div>
                 </div>
                 <div class="header-widgets">
                     <div class="widget streak-widget" title="Daily streak of completed tasks">
@@ -239,6 +244,11 @@
                         <div class="contrib-calendar-container" id="contrib-calendar-wrapper">
                             <!-- Heatmap renders dynamically here -->
                         </div>
+                    </div>
+
+                    <!-- 9. Focus Level & Proficiencies Block -->
+                    <div class="card level-card draggable-block" id="leveling-container" draggable="true">
+                        <!-- Dynamically populated -->
                     </div>
 
                 </div>

@@ -25,12 +25,17 @@ let state = {
             "personal-bests-container",
             "trajectory-chart",
             "activity-heatmap"
-        ]
+        ],
+        widgetSizes: {}
     },
     currentStreak: 0,
     bestStreak: 0,
     
     // Gamification & Mindfulness states
+    xp: 0,
+    level: 1,
+    totalFocusedMinutes: 0,
+    categoryKnowledge: {},
     sideQuest: { name: "", completed: false, date: "" },
     personalBests: { maxStreak: 0, maxDailyFocusMins: 0, maxCompletionsInADay: 0 },
     extracurriculars: ["Guitar Practice", "Painting", "Creative Writing", "Gardening", "Cooking Experiment", "Reading Novels"],
@@ -92,6 +97,14 @@ function initApp() {
     }
     updateThemeToggleUI();
 
+    // Load sidebar collapse setting (defaults to closed/true)
+    const sidebarCollapsed = localStorage.getItem("tellmewhattodo_sidebar_collapsed") !== "false";
+    if (sidebarCollapsed) {
+        document.body.classList.add("sidebar-collapsed");
+    } else {
+        document.body.classList.remove("sidebar-collapsed");
+    }
+
     updateDateDisplay();
     renderDashboardLayout();
     setupDragAndDrop();
@@ -121,7 +134,7 @@ function loadStateFromStorage() {
                 username: "Productive User",
                 dailyFocusTarget: 2.0,
                 strictMode: true,
-                dashboardOrder: [
+                 dashboardOrder: [
                     "focus-engine",
                     "focus-status",
                     "side-quest-container",
@@ -129,10 +142,20 @@ function loadStateFromStorage() {
                     "anchors-container",
                     "personal-bests-container",
                     "trajectory-chart",
-                    "activity-heatmap"
+                    "activity-heatmap",
+                    "leveling-container"
                 ],
+                widgetSizes: {},
                 ...(parsed.settings || {})
             };
+            if (!state.settings.widgetSizes) {
+                state.settings.widgetSizes = {};
+            }
+
+            // Auto-append leveling widget if missing from existing loaded profile
+            if (state.settings.dashboardOrder && !state.settings.dashboardOrder.includes("leveling-container")) {
+                state.settings.dashboardOrder.push("leveling-container");
+            }
             
             // Fallback check if it was overwritten to undefined or is missing
             if (!state.settings.dashboardOrder || !Array.isArray(state.settings.dashboardOrder)) {
@@ -144,7 +167,8 @@ function loadStateFromStorage() {
                     "anchors-container",
                     "personal-bests-container",
                     "trajectory-chart",
-                    "activity-heatmap"
+                    "activity-heatmap",
+                    "leveling-container"
                 ];
             }
             
@@ -152,6 +176,10 @@ function loadStateFromStorage() {
             state.bestStreak = parsed.bestStreak || 0;
 
             // Load new gamification fields
+            state.xp = parsed.xp || 0;
+            state.level = parsed.level || 1;
+            state.totalFocusedMinutes = parsed.totalFocusedMinutes || 0;
+            state.categoryKnowledge = parsed.categoryKnowledge || {};
             state.sideQuest = parsed.sideQuest || { name: "", completed: false, date: "" };
             state.personalBests = parsed.personalBests || { maxStreak: parsed.bestStreak || 0, maxDailyFocusMins: 0, maxCompletionsInADay: 0 };
             state.extracurriculars = parsed.extracurriculars || ["Guitar Practice", "Painting", "Creative Writing", "Gardening", "Cooking Experiment", "Reading Novels"];
@@ -185,9 +213,14 @@ function loadStateFromStorage() {
                     "anchors-container",
                     "personal-bests-container",
                     "trajectory-chart",
-                    "activity-heatmap"
+                    "activity-heatmap",
+                    "leveling-container"
                 ]
             };
+            state.xp = 0;
+            state.level = 1;
+            state.totalFocusedMinutes = 0;
+            state.categoryKnowledge = {};
             state.sideQuest = { name: "", completed: false, date: "" };
             state.personalBests = { maxStreak: 0, maxDailyFocusMins: 0, maxCompletionsInADay: 0 };
             state.extracurriculars = ["Guitar Practice", "Painting", "Creative Writing", "Gardening", "Cooking Experiment", "Reading Novels"];
@@ -226,6 +259,10 @@ function saveStateToStorage() {
             bestStreak: state.bestStreak,
             
             // New fields
+            xp: state.xp,
+            level: state.level,
+            totalFocusedMinutes: state.totalFocusedMinutes,
+            categoryKnowledge: state.categoryKnowledge,
             sideQuest: state.sideQuest,
             personalBests: state.personalBests,
             extracurriculars: state.extracurriculars,
@@ -313,6 +350,22 @@ function setupEventListeners() {
             switchView(targetView);
         });
     });
+
+    // Sidebar collapse toggler
+    const collapseBtn = document.getElementById("sidebar-collapse-btn");
+    if (collapseBtn) {
+        collapseBtn.addEventListener("click", () => {
+            document.body.classList.toggle("sidebar-collapsed");
+            const collapsed = document.body.classList.contains("sidebar-collapsed");
+            localStorage.setItem("tellmewhattodo_sidebar_collapsed", collapsed ? "true" : "false");
+            
+            // Redraw SVG graphs to account for the wider layout!
+            setTimeout(() => {
+                renderTrajectoryGraph();
+                renderContributionCalendar();
+            }, 320); // Wait for transition animation to finish (300ms)
+        });
+    }
 
     // Dashboard Triggers
     document.getElementById("suggest-trigger-btn").addEventListener("click", () => {
@@ -824,6 +877,18 @@ function completeFocusSession(isAutoCompleted = false) {
         elapsedMins = 0;
     }
 
+    // Calculate XP
+    let baseMultiplier = 1.0;
+    if (task.priority === "high") baseMultiplier += 0.3;
+    if (task.energy === "high") baseMultiplier += 0.2;
+    
+    let earnedXp = 0;
+    if (elapsedMins > 0) {
+        earnedXp = Math.round(elapsedMins * baseMultiplier * 10); // 10 XP per focus minute
+    } else {
+        earnedXp = 25; // flat XP reward for self-paced non-duration tasks (Errands, etc)
+    }
+
     // Add item to completion history logs
     const historyItem = {
         id: "hist-" + Date.now(),
@@ -832,10 +897,14 @@ function completeFocusSession(isAutoCompleted = false) {
         duration: elapsedMins,
         category: task.category || "General",
         completedAt: Date.now(),
-        method: isAutoCompleted ? "Timer Complete" : "Manual Complete"
+        method: isAutoCompleted ? "Timer Complete" : "Manual Complete",
+        xpEarned: earnedXp
     };
 
     state.history.push(historyItem);
+    
+    // Add XP to state
+    addXP(earnedXp, `Conquered "${task.name}"`, task.category || "General");
 
     // Delete original task from active lists (since it is completed)
     state.tasks = state.tasks.filter(t => t.id !== task.id);
@@ -1061,6 +1130,8 @@ function renderAllViews() {
         renderExtracurricularCard();
         renderAnchorsCard();
         renderPersonalBestsCard();
+        renderLevelingCard();
+        injectWidgetResizeControls();
     } else if (state.activeView === "tasks") {
         renderTasksList();
         renderWeeklyTasksList();
@@ -1484,9 +1555,12 @@ function renderHistoryList() {
                     <span>🤖 via ${item.method || "timer"}</span>
                 </div>
             </div>
-            <div class="history-item-right">
-                <span>${item.duration === 0 ? '🧘 Self-paced' : `⏱️ +${item.duration}m`}</span>
-                <button class="btn-action-icon delete-btn" data-id="${item.id}" title="Remove Entry" style="width:24px; height:24px; margin-left:8px;">
+            <div class="history-item-right" style="display: flex; align-items: center;">
+                <div style="text-align: right; margin-right: 8px;">
+                    <div style="font-size: 0.85rem; font-weight: 500;">${item.duration === 0 ? '🧘 Self-paced' : `⏱️ +${item.duration}m`}</div>
+                    ${item.xpEarned ? `<div style="font-size: 0.7rem; color: var(--color-primary); font-weight: 600; margin-top: 1px;">✨ +${item.xpEarned} XP</div>` : ''}
+                </div>
+                <button class="btn-action-icon delete-btn" data-id="${item.id}" title="Remove Entry" style="width:24px; height:24px;">
                     &times;
                 </button>
             </div>
@@ -1783,6 +1857,7 @@ function toggleWeeklyTask(id) {
     task.completed = !task.completed;
     if (task.completed) {
         task.completedAt = Date.now();
+        addXP(100, `Completed Weekly Goal: "${task.name}"`, "Weekly Goals");
     } else {
         delete task.completedAt;
     }
@@ -2104,6 +2179,7 @@ function toggleMonthlyGoal(id) {
     goal.completed = !goal.completed;
     if (goal.completed) {
         goal.completedAt = Date.now();
+        addXP(200, `Completed Monthly Goal: "${goal.name}"`, "Monthly Goals");
     } else {
         delete goal.completedAt;
     }
@@ -2704,7 +2780,8 @@ function setupDragAndDrop() {
                 "anchors-container",
                 "personal-bests-container",
                 "trajectory-chart",
-                "activity-heatmap"
+                "activity-heatmap",
+                "leveling-container"
             ];
 
             const draggedIdx = order.indexOf(draggedId);
@@ -2727,3 +2804,295 @@ function setupDragAndDrop() {
         }
     });
 }
+
+/**
+ * Gamification levels progression mapping Levels 1 to 25 to focused hours.
+ */
+const FOCUS_LEVELS = [
+    { level: 1, title: "Focus Initiate", minHours: 0, desc: "ADHD engine warmed up. Building core consistency." },
+    { level: 2, title: "Stamina Recruit", minHours: 15, desc: "Resisting initial attention shifts." },
+    { level: 3, title: "Cognitive Cadet", minHours: 35, desc: "Deep work habits are taking shape." },
+    { level: 4, title: "Attention Builder", minHours: 55, desc: "Focus capacity is expanding." },
+    { level: 5, title: "Worthy Candidate", minHours: 70, desc: "70+ Hours focused. Ready for standard tasks." },
+    { level: 6, title: "Worthy Professional", minHours: 100, desc: "100+ Hours focused! Qualified to hold down a skilled job." },
+    { level: 7, title: "Focus Specialist", minHours: 130, desc: "Deep study routines are solidifying." },
+    { level: 8, title: "Elite Specialist", minHours: 160, desc: "Outstanding focus and attention capabilities." },
+    { level: 9, title: "Hyperfocus Cadet", minHours: 200, desc: "Entering above-average cognitive ranges." },
+    { level: 10, title: "Cognitive Professional", minHours: 250, desc: "250+ Hours. Stamina matches the top tier of learners." },
+    { level: 11, title: "Deep Work Scholar", minHours: 300, desc: "300+ Hours. Focus flows naturally." },
+    { level: 12, title: "Deep Work Specialist", minHours: 350, desc: "Excellent attention block stamina." },
+    { level: 13, title: "Cognitive Craftsman", minHours: 400, desc: "Deep focus is second nature." },
+    { level: 14, title: "Focus Adept", minHours: 450, desc: "Exceptional mastery of task focus." },
+    { level: 15, title: "Concentration Champion", minHours: 500, desc: "500+ Hours focused. Stamina is elite." },
+    { level: 16, title: "Attention Architect", minHours: 560, desc: "Structuring deep focus at will." },
+    { level: 17, title: "Cognitive Master", minHours: 620, desc: "High-intensity cognitive stamina." },
+    { level: 18, title: "Flow Runner", minHours: 680, desc: "Focus flows uninterrupted for hours." },
+    { level: 19, title: "Focus Vanguard", minHours: 740, desc: "Leading the deep work revolution." },
+    { level: 20, title: "Mindfulness Master", minHours: 800, desc: "800+ Hours. Calm, unwavering focus." },
+    { level: 21, title: "Attention Specialist Elite", minHours: 850, desc: "Near limitless cognitive stamina." },
+    { level: 22, title: "Hyperfocus Master", minHours: 900, desc: "Complete lock on complex, lengthy tasks." },
+    { level: 23, title: "Cognitive Titan", minHours: 950, desc: "Massive mental bandwidth unlocked." },
+    { level: 24, title: "Deep Work Grandmaster", minHours: 1000, desc: "1000+ Hours. Standout focused learner." },
+    { level: 25, title: "Flow-State Legend", minHours: 1100, desc: "Legendary attention control. Focus state complete." }
+];
+
+function getFocusRank(hours) {
+    let rank = FOCUS_LEVELS[0];
+    for (let i = 0; i < FOCUS_LEVELS.length; i++) {
+        if (hours >= FOCUS_LEVELS[i].minHours) {
+            rank = FOCUS_LEVELS[i];
+        } else {
+            break;
+        }
+    }
+    return rank;
+}
+
+function addXP(amount, reason, category = "General") {
+    if (isNaN(amount) || amount <= 0) return;
+    
+    state.xp = (state.xp || 0) + amount;
+    
+    // Add to category knowledge
+    if (!state.categoryKnowledge) state.categoryKnowledge = {};
+    const catKey = category.toLowerCase().trim();
+    state.categoryKnowledge[catKey] = (state.categoryKnowledge[catKey] || 0) + amount;
+    
+    // Check level up based on total hours
+    const totalFocusMins = state.history.reduce((sum, item) => sum + item.duration, 0);
+    const totalFocusHours = totalFocusMins / 60;
+    const currentRank = getFocusRank(totalFocusHours);
+    
+    if (currentRank.level > (state.level || 1)) {
+        state.level = currentRank.level;
+        showToast(`🎉 LEVEL UP! You are now a "${currentRank.title}" (Level ${currentRank.level})!`, false);
+        playLevelUpChime();
+    }
+    
+    saveStateToStorage();
+}
+
+function playLevelUpChime() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        
+        const playTone = (freq, startTime, duration, volume) => {
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(freq, startTime);
+            gainNode.gain.setValueAtTime(volume, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        };
+        
+        // Upward arpeggio for Level Up triumph (C5 -> E5 -> G5 -> C6)
+        playTone(523.25, ctx.currentTime, 0.15, 0.15);       // C5
+        playTone(659.25, ctx.currentTime + 0.12, 0.15, 0.15);  // E5
+        playTone(783.99, ctx.currentTime + 0.24, 0.15, 0.15);  // G5
+        playTone(1046.50, ctx.currentTime + 0.36, 0.5, 0.2);   // C6
+    } catch (e) {
+        console.warn("Audio chime failed:", e);
+    }
+}
+
+function renderLevelingCard() {
+    const container = document.getElementById("leveling-container");
+    if (!container) return;
+
+    const totalFocusMins = state.history.reduce((sum, item) => sum + item.duration, 0);
+    const totalFocusHours = totalFocusMins / 60;
+    
+    const currentRank = getFocusRank(totalFocusHours);
+    let nextRank = null;
+    const currentIdx = FOCUS_LEVELS.findIndex(r => r.level === currentRank.level);
+    if (currentIdx !== -1 && currentIdx < FOCUS_LEVELS.length - 1) {
+        nextRank = FOCUS_LEVELS[currentIdx + 1];
+    }
+
+    if (state.level !== currentRank.level) {
+        state.level = currentRank.level;
+        saveStateToStorage();
+    }
+    state.totalFocusedMinutes = totalFocusMins;
+
+    // Calculate stamina progression percent
+    let progressPercent = 100;
+    let progressLabel = "MAX LEVEL";
+    if (nextRank) {
+        const range = nextRank.minHours - currentRank.minHours;
+        const currentProgress = totalFocusHours - currentRank.minHours;
+        progressPercent = Math.min(100, Math.max(0, Math.round((currentProgress / range) * 100)));
+        progressLabel = `${totalFocusHours.toFixed(1)}h / ${nextRank.minHours}h to Lv. ${nextRank.level}`;
+    }
+
+    // Build skill trees
+    const categories = Object.keys(state.categoryKnowledge || {});
+    let skillListHtml = "";
+    if (categories.length === 0) {
+        skillListHtml = `
+            <div style="text-align: center; font-size: 0.75rem; color: var(--text-muted); padding: 8px 0;">
+                Complete tasks via Focus Timer to build knowledge skills.
+            </div>
+        `;
+    } else {
+        const sortedSkills = categories
+            .map(cat => ({
+                name: cat.charAt(0).toUpperCase() + cat.slice(1),
+                xp: state.categoryKnowledge[cat] || 0
+            }))
+            .sort((a, b) => b.xp - a.xp)
+            .slice(0, 4);
+
+        skillListHtml = sortedSkills.map(skill => {
+            const skillLevel = Math.floor(Math.sqrt(skill.xp / 40)) + 1;
+            const nextSkillXp = Math.pow(skillLevel, 2) * 40;
+            const prevSkillXp = Math.pow(skillLevel - 1, 2) * 40;
+            const skillRange = nextSkillXp - prevSkillXp;
+            const skillProgress = skill.xp - prevSkillXp;
+            const skillPercent = Math.min(100, Math.max(0, Math.round((skillProgress / skillRange) * 100)));
+
+            return `
+                <div class="skill-row" style="margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
+                        <span style="color: var(--text-secondary); font-weight: 500;">📖 ${skill.name} (Lv. ${skillLevel})</span>
+                        <strong style="color: var(--color-primary);">${skill.xp} XP</strong>
+                    </div>
+                    <div class="widget-progress-bar" style="height: 6px; background-color: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
+                        <div class="widget-progress-fill" style="width: ${skillPercent}%; height: 100%; background: linear-gradient(90deg, var(--color-primary), var(--color-accent-purple)); border-radius: 3px;"></div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    container.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <h3>⚡ Focus Rank & Skills</h3>
+            <span style="background: rgba(0, 242, 254, 0.1); color: var(--color-primary); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(0, 242, 254, 0.2);">
+                Level ${currentRank.level}
+            </span>
+        </div>
+        
+        <!-- Rank Title Panel -->
+        <div class="rank-panel" style="background: var(--color-bg-card-hover); padding: 12px; border-radius: var(--border-radius-md); border: 1px dashed rgba(255,255,255,0.05); margin-bottom: 14px;">
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); margin-bottom: 2px;">
+                ${currentRank.title}
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 8px 0; line-height: 1.25;">
+                "${currentRank.desc}"
+            </p>
+            
+            <!-- Progress to next level -->
+            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 3px;">
+                <span>Stamina Progression</span>
+                <span>${progressLabel}</span>
+            </div>
+            <div class="widget-progress-bar" style="height: 8px; background-color: var(--color-bg-deep); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.03);">
+                <div class="widget-progress-fill" style="width: ${progressPercent}%; height: 100%; background: linear-gradient(90deg, var(--color-accent-purple), var(--color-primary)); border-radius: 4px;"></div>
+            </div>
+        </div>
+
+        <!-- Proficiency skills list -->
+        <h4 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 0 0 10px 0;">Knowledge Proficiencies</h4>
+        <div class="proficiencies-list">
+            ${skillListHtml}
+        </div>
+    `;
+}
+
+function injectWidgetResizeControls() {
+    const widgets = document.querySelectorAll(".draggable-block");
+    widgets.forEach(widget => {
+        const widgetId = widget.id;
+        if (!widgetId) return;
+
+        // Ensure relative positioning so controls absolute align correctly
+        widget.style.position = "relative";
+
+        // Read current size setting, defaulting logically if not yet set
+        if (!state.settings.widgetSizes) state.settings.widgetSizes = {};
+        let currentSize = state.settings.widgetSizes[widgetId];
+        if (!currentSize) {
+            if (widgetId === "activity-heatmap") {
+                currentSize = "span-4";
+            } else if (widgetId === "focus-engine" || widgetId === "trajectory-chart") {
+                currentSize = "span-2";
+            } else {
+                currentSize = "span-1";
+            }
+            state.settings.widgetSizes[widgetId] = currentSize;
+        }
+
+        // Apply class
+        widget.classList.remove("grid-span-1", "grid-span-2", "grid-span-3", "grid-span-4");
+        widget.classList.add(`grid-${currentSize}`);
+
+        // Skip adding controls if already present
+        if (widget.querySelector(".widget-resize-controls")) {
+            // Update button label inside if already present
+            const btn = widget.querySelector(".btn-resize-widget");
+            if (btn) {
+                const getLabel = (size) => {
+                    if (size === "span-1") return "1/4";
+                    if (size === "span-2") return "2/4";
+                    if (size === "span-3") return "3/4";
+                    return "4/4";
+                };
+                btn.innerHTML = `↔️ ${getLabel(currentSize)}`;
+            }
+            return;
+        }
+
+        const controlsDiv = document.createElement("div");
+        controlsDiv.className = "widget-resize-controls";
+
+        const getLabel = (size) => {
+            if (size === "span-1") return "1/4";
+            if (size === "span-2") return "2/4";
+            if (size === "span-3") return "3/4";
+            return "4/4";
+        };
+
+        const btn = document.createElement("button");
+        btn.className = "btn-resize-widget";
+        btn.title = "Cycle Width (1/4 -> 2/4 -> 3/4 -> 4/4)";
+        btn.innerHTML = `↔️ ${getLabel(currentSize)}`;
+
+        btn.addEventListener("click", (e) => {
+            e.stopPropagation(); // Avoid triggering card drags
+
+            // Cycle size: span-1 -> span-2 -> span-3 -> span-4 -> span-1
+            let nextSize = "span-1";
+            if (currentSize === "span-1") nextSize = "span-2";
+            else if (currentSize === "span-2") nextSize = "span-3";
+            else if (currentSize === "span-3") nextSize = "span-4";
+
+            widget.classList.remove(`grid-${currentSize}`);
+            widget.classList.add(`grid-${nextSize}`);
+            currentSize = nextSize;
+
+            state.settings.widgetSizes[widgetId] = nextSize;
+            saveStateToStorage();
+
+            btn.innerHTML = `↔️ ${getLabel(nextSize)}`;
+
+            // Redraw charts after transition timeout (320ms)
+            setTimeout(() => {
+                renderTrajectoryGraph();
+                renderContributionCalendar();
+            }, 320);
+
+            showToast(`Resized widget to ${getLabel(nextSize)} width.`);
+        });
+
+        controlsDiv.appendChild(btn);
+        widget.appendChild(controlsDiv);
+    });
+}
+
