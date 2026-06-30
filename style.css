@@ -5,11 +5,11 @@
 /* Design Tokens & Variables */
 :root {
     /* Cyberpunk Dark Blue / Techno Vibe */
-    --color-bg-deep: #060913;      /* Deep space black-blue */
-    --color-bg-sidebar: #0a0e1a;   /* Slightly lighter space blue */
-    --color-bg-card: #0e1428;      /* Sleek dark slate blue */
-    --color-bg-card-hover: #151e3d;/* Slate blue hover */
-    --color-bg-modal: #0e1428;
+    --color-bg-deep: #030303;      /* Deep space black */
+    --color-bg-sidebar: #0a0a0c;   /* Slate black sidebar */
+    --color-bg-card: #0f0f13;      /* Sleek dark charcoal card */
+    --color-bg-card-hover: #17171d;/* Charcoal hover */
+    --color-bg-modal: #0f0f13;
     
     --color-primary: #00f2fe;      /* Neon Cyan */
     --color-primary-hover: #00d5e0;
