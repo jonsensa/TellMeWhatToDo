@@ -569,6 +569,24 @@ body.light-mode .top-header {
     cursor: grab;
     user-select: none;
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    height: 230px;
+    overflow-y: auto;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.draggable-block::-webkit-scrollbar {
+    width: 4px;
+}
+.draggable-block::-webkit-scrollbar-track {
+    background: transparent;
+}
+.draggable-block::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+.draggable-block::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
 }
 
 .draggable-block:active {
@@ -615,42 +633,26 @@ body.light-mode .top-header {
     grid-column: span 4 !important;
 }
 
-/* Widget resize controls */
-.widget-resize-controls {
+/* Widget resize edge handles */
+.widget-resizer-handle {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    gap: 4px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    z-index: 10;
+    top: 0;
+    right: 0;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 15;
+    background: transparent;
+    transition: background 0.2s ease;
 }
 
-.draggable-block:hover .widget-resize-controls {
-    opacity: 1;
+.widget-resizer-handle:hover {
+    background: rgba(0, 242, 254, 0.25) !important;
 }
 
-.btn-resize-widget {
-    background-color: var(--color-bg-deep);
-    border: 1px solid var(--border-color);
-    color: var(--text-muted);
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 3px 6px;
-    border-radius: var(--border-radius-sm);
-    cursor: pointer;
-    transition: var(--transition-quick);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    line-height: 1;
-}
-
-.btn-resize-widget:hover {
-    color: var(--color-primary);
-    border-color: var(--color-primary-hover);
-    box-shadow: 0 0 5px rgba(0, 242, 254, 0.2);
+.widget-resizer-handle.resizing {
+    background: var(--color-primary) !important;
+    width: 4px;
 }
 
 /* CTA Card */

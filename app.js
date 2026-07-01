@@ -1131,7 +1131,7 @@ function renderAllViews() {
         renderAnchorsCard();
         renderPersonalBestsCard();
         renderLevelingCard();
-        injectWidgetResizeControls();
+        setupWidgetResizers();
     } else if (state.activeView === "tasks") {
         renderTasksList();
         renderWeeklyTasksList();
@@ -2733,6 +2733,10 @@ function setupDragAndDrop() {
     let draggedId = null;
 
     container.addEventListener("dragstart", (e) => {
+        if (e.target.closest(".widget-resizer-handle")) {
+            e.preventDefault();
+            return;
+        }
         const target = e.target.closest(".draggable-block");
         if (target) {
             draggedId = target.id;
@@ -2947,7 +2951,7 @@ function renderLevelingCard() {
                 xp: state.categoryKnowledge[cat] || 0
             }))
             .sort((a, b) => b.xp - a.xp)
-            .slice(0, 4);
+            .slice(0, 3); // top 3 skills for maximum vertical density
 
         skillListHtml = sortedSkills.map(skill => {
             const skillLevel = Math.floor(Math.sqrt(skill.xp / 40)) + 1;
@@ -2958,13 +2962,13 @@ function renderLevelingCard() {
             const skillPercent = Math.min(100, Math.max(0, Math.round((skillProgress / skillRange) * 100)));
 
             return `
-                <div class="skill-row" style="margin-bottom: 8px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 2px;">
+                <div class="skill-row" style="margin-bottom: 5px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 1px;">
                         <span style="color: var(--text-secondary); font-weight: 500;">📖 ${skill.name} (Lv. ${skillLevel})</span>
-                        <strong style="color: var(--color-primary);">${skill.xp} XP</strong>
+                        <strong style="color: var(--color-primary); font-size: 0.65rem;">${skill.xp} XP</strong>
                     </div>
-                    <div class="widget-progress-bar" style="height: 6px; background-color: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
-                        <div class="widget-progress-fill" style="width: ${skillPercent}%; height: 100%; background: linear-gradient(90deg, var(--color-primary), var(--color-accent-purple)); border-radius: 3px;"></div>
+                    <div class="widget-progress-bar" style="height: 4px; background-color: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
+                        <div class="widget-progress-fill" style="width: ${skillPercent}%; height: 100%; background: linear-gradient(90deg, var(--color-primary), var(--color-accent-purple)); border-radius: 2px;"></div>
                     </div>
                 </div>
             `;
@@ -2972,41 +2976,37 @@ function renderLevelingCard() {
     }
 
     container.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-            <h3>⚡ Focus Rank & Skills</h3>
-            <span style="background: rgba(0, 242, 254, 0.1); color: var(--color-primary); padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(0, 242, 254, 0.2);">
-                Level ${currentRank.level}
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <h3 style="font-size: 0.9rem; margin: 0;">⚡ Rank & Level</h3>
+            <span style="background: rgba(0, 242, 254, 0.1); color: var(--color-primary); padding: 1px 6px; border-radius: 10px; font-size: 0.65rem; font-weight: 700; border: 1px solid rgba(0, 242, 254, 0.2);">
+                Lv. ${currentRank.level}
             </span>
         </div>
         
-        <!-- Rank Title Panel -->
-        <div class="rank-panel" style="background: var(--color-bg-card-hover); padding: 12px; border-radius: var(--border-radius-md); border: 1px dashed rgba(255,255,255,0.05); margin-bottom: 14px;">
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-main); margin-bottom: 2px;">
+        <!-- Compact Rank Panel -->
+        <div class="rank-panel" style="background: var(--color-bg-card-hover); padding: 8px 10px; border-radius: var(--border-radius-md); border: 1px dashed rgba(255,255,255,0.05); margin-bottom: 8px;">
+            <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-main); line-height: 1.2;">
                 ${currentRank.title}
             </div>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 8px 0; line-height: 1.25;">
-                "${currentRank.desc}"
-            </p>
             
-            <!-- Progress to next level -->
-            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 3px;">
-                <span>Stamina Progression</span>
+            <!-- Compact Progress -->
+            <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin: 6px 0 2px 0;">
+                <span>Progression</span>
                 <span>${progressLabel}</span>
             </div>
-            <div class="widget-progress-bar" style="height: 8px; background-color: var(--color-bg-deep); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.03);">
-                <div class="widget-progress-fill" style="width: ${progressPercent}%; height: 100%; background: linear-gradient(90deg, var(--color-accent-purple), var(--color-primary)); border-radius: 4px;"></div>
+            <div class="widget-progress-bar" style="height: 5px; background-color: var(--color-bg-deep); border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.03);">
+                <div class="widget-progress-fill" style="width: ${progressPercent}%; height: 100%; background: linear-gradient(90deg, var(--color-accent-purple), var(--color-primary)); border-radius: 3px;"></div>
             </div>
         </div>
 
-        <!-- Proficiency skills list -->
-        <h4 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 0 0 10px 0;">Knowledge Proficiencies</h4>
-        <div class="proficiencies-list">
+        <!-- Compact Proficiencies -->
+        <div class="proficiencies-list" style="display: flex; flex-direction: column; gap: 4px;">
             ${skillListHtml}
         </div>
     `;
 }
 
-function injectWidgetResizeControls() {
+function setupWidgetResizers() {
     const widgets = document.querySelectorAll(".draggable-block");
     widgets.forEach(widget => {
         const widgetId = widget.id;
@@ -3029,70 +3029,73 @@ function injectWidgetResizeControls() {
             state.settings.widgetSizes[widgetId] = currentSize;
         }
 
-        // Apply class
+        // Apply grid-span class
         widget.classList.remove("grid-span-1", "grid-span-2", "grid-span-3", "grid-span-4");
         widget.classList.add(`grid-${currentSize}`);
 
-        // Skip adding controls if already present
-        if (widget.querySelector(".widget-resize-controls")) {
-            // Update button label inside if already present
-            const btn = widget.querySelector(".btn-resize-widget");
-            if (btn) {
-                const getLabel = (size) => {
-                    if (size === "span-1") return "1/4";
-                    if (size === "span-2") return "2/4";
-                    if (size === "span-3") return "3/4";
-                    return "4/4";
-                };
-                btn.innerHTML = `↔️ ${getLabel(currentSize)}`;
-            }
-            return;
-        }
+        // Add resizer handle if not already present
+        if (widget.querySelector(".widget-resizer-handle")) return;
 
-        const controlsDiv = document.createElement("div");
-        controlsDiv.className = "widget-resize-controls";
+        const handle = document.createElement("div");
+        handle.className = "widget-resizer-handle";
+        handle.setAttribute("draggable", "false"); // Prevent HTML5 Drag and Drop triggers
 
-        const getLabel = (size) => {
-            if (size === "span-1") return "1/4";
-            if (size === "span-2") return "2/4";
-            if (size === "span-3") return "3/4";
-            return "4/4";
-        };
+        handle.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
 
-        const btn = document.createElement("button");
-        btn.className = "btn-resize-widget";
-        btn.title = "Cycle Width (1/4 -> 2/4 -> 3/4 -> 4/4)";
-        btn.innerHTML = `↔️ ${getLabel(currentSize)}`;
+            handle.classList.add("resizing");
+            
+            // Get grid parameters
+            const grid = document.getElementById("dashboard-widgets-container");
+            if (!grid) return;
+            const gridRect = grid.getBoundingClientRect();
+            const totalWidth = gridRect.width;
+            const gap = 24; // aligned with style.css gap
+            const columnsCount = 4;
+            const colWidth = (totalWidth - (gap * (columnsCount - 1))) / columnsCount;
 
-        btn.addEventListener("click", (e) => {
-            e.stopPropagation(); // Avoid triggering card drags
+            const startX = e.clientX;
+            const initialWidth = widget.getBoundingClientRect().width;
+            let lastSpan = parseInt(currentSize.split("-")[1]) || 1;
 
-            // Cycle size: span-1 -> span-2 -> span-3 -> span-4 -> span-1
-            let nextSize = "span-1";
-            if (currentSize === "span-1") nextSize = "span-2";
-            else if (currentSize === "span-2") nextSize = "span-3";
-            else if (currentSize === "span-3") nextSize = "span-4";
+            const onMouseMove = (moveEvent) => {
+                moveEvent.preventDefault();
+                const dx = moveEvent.clientX - startX;
+                const targetWidth = initialWidth + dx;
+                
+                // Determine new span count based on cursor position
+                let candidateSpan = Math.round((targetWidth + gap/2) / (colWidth + gap));
+                candidateSpan = Math.max(1, Math.min(4, candidateSpan));
 
-            widget.classList.remove(`grid-${currentSize}`);
-            widget.classList.add(`grid-${nextSize}`);
-            currentSize = nextSize;
+                if (candidateSpan !== lastSpan) {
+                    widget.classList.remove("grid-span-1", "grid-span-2", "grid-span-3", "grid-span-4");
+                    widget.classList.add(`grid-span-${candidateSpan}`);
+                    lastSpan = candidateSpan;
+                }
+            };
 
-            state.settings.widgetSizes[widgetId] = nextSize;
-            saveStateToStorage();
+            const onMouseUp = () => {
+                handle.classList.remove("resizing");
+                window.removeEventListener("mousemove", onMouseMove);
+                window.removeEventListener("mouseup", onMouseUp);
 
-            btn.innerHTML = `↔️ ${getLabel(nextSize)}`;
+                // Commit layout span
+                const finalSize = `span-${lastSpan}`;
+                state.settings.widgetSizes[widgetId] = finalSize;
+                currentSize = finalSize;
+                saveStateToStorage();
 
-            // Redraw charts after transition timeout (320ms)
-            setTimeout(() => {
+                // Scale charts immediately
                 renderTrajectoryGraph();
                 renderContributionCalendar();
-            }, 320);
+            };
 
-            showToast(`Resized widget to ${getLabel(nextSize)} width.`);
+            window.addEventListener("mousemove", onMouseMove);
+            window.addEventListener("mouseup", onMouseUp);
         });
 
-        controlsDiv.appendChild(btn);
-        widget.appendChild(controlsDiv);
+        widget.appendChild(handle);
     });
 }
 
