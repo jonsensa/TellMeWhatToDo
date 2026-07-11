@@ -4,44 +4,44 @@
 
 /* Design Tokens & Variables */
 :root {
-    /* Cyberpunk Dark Blue / Techno Vibe */
-    --color-bg-deep: #030303;      /* Deep space black */
-    --color-bg-sidebar: #0a0a0c;   /* Slate black sidebar */
-    --color-bg-card: #0f0f13;      /* Sleek dark charcoal card */
-    --color-bg-card-hover: #17171d;/* Charcoal hover */
-    --color-bg-modal: #0f0f13;
+    /* Notion Dark Mode Palette */
+    --color-bg-deep: #191919;      /* Notion main page background */
+    --color-bg-sidebar: #202020;   /* Notion bottom nav background */
+    --color-bg-card: #202020;      /* Notion card/block background */
+    --color-bg-card-hover: #282828;/* Notion block hover background */
+    --color-bg-modal: #252525;
     
-    --color-primary: #00f2fe;      /* Neon Cyan */
-    --color-primary-hover: #00d5e0;
-    --color-primary-glow: rgba(0, 242, 254, 0.15);
+    --color-primary: #2eaadc;      /* Notion Blue */
+    --color-primary-hover: #1f93c0;
+    --color-primary-glow: rgba(46, 170, 220, 0.12);
     
-    --color-accent-purple: #9f7aea;/* Neon Purple */
-    --color-accent-purple-glow: rgba(159, 122, 234, 0.15);
+    --color-accent-purple: #9a6dd7;/* Notion Purple */
+    --color-accent-purple-glow: rgba(154, 109, 215, 0.12);
     
-    --color-accent-cyan: #00f2fe;
+    --color-accent-cyan: #2eaadc;
     
-    --color-success: #00ff88;      /* Neon Green */
-    --color-success-hover: #00e577;
-    --color-success-glow: rgba(0, 255, 136, 0.15);
+    --color-success: #529e72;      /* Notion Green */
+    --color-success-hover: #43825c;
+    --color-success-glow: rgba(82, 158, 114, 0.12);
     
-    --color-danger: #ff0055;       /* Neon Pink */
-    --color-danger-hover: #e6004c;
-    --color-danger-glow: rgba(255, 0, 85, 0.15);
+    --color-danger: #eb5757;       /* Notion Red */
+    --color-danger-hover: #df4343;
+    --color-danger-glow: rgba(235, 87, 87, 0.12);
     
-    --color-warning: #ffd700;      /* Neon Gold */
+    --color-warning: #df9b35;      /* Notion Yellow/Orange */
     
-    --text-main: #f1f5f9;          /* Bright white-slate */
-    --text-secondary: #94a3b8;     /* Muted slate */
-    --text-muted: #475569;         /* Dark muted slate */
+    --text-main: #f1f1f1;          /* Notion bright text */
+    --text-secondary: #9b9b9b;     /* Notion secondary text */
+    --text-muted: #5a5a5a;         /* Notion muted text */
     
-    --border-color: rgba(0, 242, 254, 0.08); /* Cyber cyan border */
-    --border-color-hover: rgba(0, 242, 254, 0.25);
-    --border-color-active: rgba(0, 242, 254, 0.4);
+    --border-color: #2e2e2e;       /* Notion border color */
+    --border-color-hover: #3f3f3f;
+    --border-color-active: #575757;
     
     --shadow-dark: rgba(0, 0, 0, 0.65);
     --shadow-light: rgba(255, 255, 255, 0.01);
     
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-sans: 'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     
     --shadow-sm: 0 2px 8px var(--shadow-dark);
     --shadow-md: 0 4px 20px var(--shadow-dark);
@@ -68,39 +68,39 @@
 }
 
 body.light-mode {
-    /* Cyberpunk Light Mode - Clean Slate Teal */
-    --color-bg-deep: #f8fafc;
-    --color-bg-sidebar: #f1f5f9;
-    --color-bg-card: #ffffff;
-    --color-bg-card-hover: #f8fafc;
+    /* Notion Light Mode Palette */
+    --color-bg-deep: #ffffff;      /* Notion main background */
+    --color-bg-sidebar: #f7f7f5;   /* Notion bottom nav background */
+    --color-bg-card: #ffffff;      /* Notion card background */
+    --color-bg-card-hover: #f7f7f5;/* Notion card hover background */
     --color-bg-modal: #ffffff;
     
-    --color-primary: #0f172a;       /* Deep slate */
-    --color-primary-hover: #1e293b;
-    --color-primary-glow: rgba(15, 23, 42, 0.08);
+    --color-primary: #2eaadc;       /* Notion blue accent */
+    --color-primary-hover: #1f93c0;
+    --color-primary-glow: rgba(46, 170, 220, 0.08);
     
-    --color-accent-purple: #7c3aed;
-    --color-accent-purple-glow: rgba(124, 58, 237, 0.08);
+    --color-accent-purple: #9a6dd7;
+    --color-accent-purple-glow: rgba(154, 109, 215, 0.08);
     
-    --color-accent-cyan: #0ea5e9;   /* Lighter cyan */
+    --color-accent-cyan: #2eaadc;
     
-    --color-success: #10b981;
-    --color-success-hover: #059669;
-    --color-success-glow: rgba(16, 185, 129, 0.1);
+    --color-success: #529e72;
+    --color-success-hover: #43825c;
+    --color-success-glow: rgba(82, 158, 114, 0.08);
     
-    --color-danger: #ef4444;
-    --color-danger-hover: #dc2626;
-    --color-danger-glow: rgba(239, 68, 68, 0.1);
+    --color-danger: #eb5757;
+    --color-danger-hover: #df4343;
+    --color-danger-glow: rgba(235, 87, 87, 0.08);
     
-    --color-warning: #f59e0b;
+    --color-warning: #df9b35;
     
-    --text-main: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
+    --text-main: #37352f;          /* Notion primary dark text */
+    --text-secondary: #7c7b77;     /* Notion secondary text */
+    --text-muted: #acaba9;          /* Notion muted text */
     
-    --border-color: #e2e8f0;
-    --border-color-hover: #cbd5e1;
-    --border-color-active: #94a3b8;
+    --border-color: #e9e9e6;       /* Notion light border color */
+    --border-color-hover: #dfdfde;
+    --border-color-active: #d3d3d0;
     
     --shadow-dark: rgba(15, 23, 42, 0.06);
     --shadow-light: rgba(255, 255, 255, 0.8);
@@ -163,29 +163,26 @@ body {
 
 /* Sidebar Navigation */
 .sidebar {
-    width: 200px;
+    width: 100%;
+    height: 64px;
     background-color: var(--color-bg-sidebar);
-    border-right: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-color);
     display: flex;
-    flex-direction: column;
-    padding: 24px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 16px;
     position: fixed;
-    height: 100vh;
+    bottom: 0;
+    left: 0;
     z-index: 100;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-body.sidebar-collapsed .sidebar {
-    width: 70px;
-    padding: 24px 10px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: none;
 }
 
 .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 40px;
-    padding: 6px 4px;
+    display: none;
 }
 
 .brand-icon {
@@ -211,44 +208,55 @@ body.sidebar-collapsed .sidebar {
 
 .nav-menu {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex-grow: 1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    max-width: 500px;
 }
 
 .nav-btn {
-    background: none;
-    border: none;
-    outline: none;
-    color: var(--text-muted);
-    font-family: var(--font-sans);
-    font-size: 0.95rem;
-    font-weight: 500;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 14px;
-    padding: 12px 16px;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 16px;
     border-radius: var(--border-radius-md);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
     cursor: pointer;
-    text-align: left;
+    font-family: var(--font-sans);
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
     transition: var(--transition-quick);
+    flex: 1;
+    min-width: 0;
+}
+
+.nav-btn span {
+    font-size: 0.65rem;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .nav-icon {
     width: 20px;
     height: 20px;
-    transition: var(--transition-quick);
+    flex-shrink: 0;
 }
 
 .nav-btn:hover {
-    color: var(--text-main);
-    background-color: var(--color-bg-card-hover);
+    color: var(--color-primary);
+    background-color: rgba(0, 242, 254, 0.05);
 }
 
 .nav-btn.active {
     color: var(--color-primary);
-    background-color: var(--color-bg-deep);
-    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+    background-color: rgba(0, 242, 254, 0.08);
 }
 
 .nav-btn.active .nav-icon {
@@ -257,8 +265,7 @@ body.sidebar-collapsed .sidebar {
 }
 
 .sidebar-footer {
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
+    display: none;
 }
 
 .user-badge {
@@ -303,49 +310,13 @@ body.sidebar-collapsed .sidebar {
 
 /* Main Content Area */
 .main-content {
-    margin-left: 200px;
+    margin-left: 0;
     flex-grow: 1;
     min-height: 100vh;
-    padding: 30px 40px 60px 40px;
+    padding: 30px 40px 80px 40px;
     display: flex;
     flex-direction: column;
     transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-body.sidebar-collapsed .main-content {
-    margin-left: 70px;
-}
-
-/* Hide sidebar text labels in collapsed mode */
-body.sidebar-collapsed .sidebar h1,
-body.sidebar-collapsed .sidebar .nav-btn span,
-body.sidebar-collapsed .sidebar #theme-toggle-text,
-body.sidebar-collapsed .sidebar .user-info {
-    display: none !important;
-}
-
-body.sidebar-collapsed .sidebar .brand {
-    justify-content: center;
-    gap: 0;
-    margin-bottom: 24px;
-}
-
-body.sidebar-collapsed .sidebar .nav-btn {
-    justify-content: center;
-    padding: 12px 10px;
-    gap: 0;
-}
-
-body.sidebar-collapsed .sidebar #theme-toggle-btn {
-    padding: 10px;
-    justify-content: center;
-    gap: 0;
-}
-
-body.sidebar-collapsed .sidebar .user-badge {
-    justify-content: center;
-    padding: 4px 0;
-    gap: 0;
 }
 
 /* Header Styles */
@@ -497,18 +468,22 @@ body.light-mode .top-header {
 }
 
 .widget-progress-bar {
-    width: 80px;
+    width: 100%;
     height: 4px;
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
     overflow: hidden;
 }
 
+.goal-widget .widget-progress-bar {
+    width: 120px;
+}
+
 .widget-progress-fill {
     height: 100%;
     background-color: var(--color-primary);
     border-radius: 4px;
-    transition: width 0.4s ease;
+    transition: width 1.2s cubic-bezier(0.1, 1, 0.1, 1);
 }
 
 /* View Panel Base */
@@ -564,26 +539,25 @@ body.light-mode .top-header {
     margin-bottom: 24px;
 }
 
-/* Draggable & Size Rules */
 .draggable-block {
     cursor: grab;
     user-select: none;
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-    height: 230px;
+    height: 240px;
     overflow-y: auto;
     position: relative;
     box-sizing: border-box;
 }
 
 .draggable-block::-webkit-scrollbar {
-    width: 4px;
+    width: 5px;
 }
 .draggable-block::-webkit-scrollbar-track {
     background: transparent;
 }
 .draggable-block::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
+    background: #373737;
+    border-radius: 3px;
 }
 .draggable-block::-webkit-scrollbar-thumb:hover {
     background: var(--color-primary);
@@ -1033,23 +1007,26 @@ select option {
     border-radius: var(--border-radius-md);
     padding: 10px 18px;
     cursor: pointer;
-    border: none;
-    background-color: var(--color-bg-card);
+    border: 1px solid var(--border-color);
+    background-color: #252525;
     color: var(--text-main);
-    box-shadow: 3px 3px 8px var(--shadow-dark), -3px -3px 8px var(--shadow-light);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     transition: var(--transition-quick);
     text-decoration: none;
     outline: none;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn:hover {
-    box-shadow: 5px 5px 12px var(--shadow-dark), -5px -5px 12px var(--shadow-light);
+    background-color: var(--color-bg-card-hover);
+    border-color: var(--border-color-hover);
     transform: translateY(-1px);
 }
 
 .btn:active {
-    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
-    transform: translateY(0);
+    background-color: #1a1a1a;
+    transform: scale(0.96) translateY(0);
 }
 
 .btn-large {
@@ -1135,9 +1112,79 @@ select option {
 }
 
 @keyframes pulse-ring {
-    0% { transform: scale(1); opacity: 0.4; }
-    70% { transform: scale(1.15, 1.3); opacity: 0; }
-    100% { transform: scale(1.15, 1.3); opacity: 0; }
+    0% { transform: scale(1); opacity: 0.6; }
+    70% { transform: scale(1.25, 1.45); opacity: 0; }
+    100% { transform: scale(1.25, 1.45); opacity: 0; }
+}
+
+.ripple-effect {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(0);
+    animation: ripple-burst 0.5s ease-out;
+    pointer-events: none;
+}
+
+@keyframes ripple-burst {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+.success-pop {
+    animation: success-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes success-pop {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7);
+    }
+    50% {
+        transform: scale(1.08);
+        box-shadow: 0 0 20px 10px rgba(0, 255, 136, 0.3);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 255, 136, 0);
+    }
+}
+
+#focus-timer-container.completing::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0) rotate(-45deg);
+    font-size: 5rem;
+    color: var(--color-success);
+    font-weight: 800;
+    background: rgba(26, 31, 28, 0.95);
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-lg);
+    z-index: 10;
+    animation: check-stamp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.5) forwards;
+}
+
+@keyframes check-stamp {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(-45deg);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2) rotate(15deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
 }
 
 /* Tasks List Panel */
@@ -2243,6 +2290,8 @@ select option {
 
 .contrib-columns-container {
     display: flex;
+    justify-content: space-between;
+    width: 100%;
     gap: 2px;
 }
 
@@ -2253,10 +2302,13 @@ select option {
 }
 
 .contrib-cell {
-    width: 10px;
-    height: 10px;
     border-radius: 1px;
     transition: background-color 0.1s ease;
+}
+
+.contrib-legend-cell {
+    width: 10px !important;
+    height: 10px !important;
 }
 
 /* Dark Mode Cell Levels (Default) */
@@ -2372,10 +2424,7 @@ select option {
     transform: translateY(-1px);
 }
 
-/* Typography serif overrides */
-h1, h2, h3, .brand h1, #welcome-greeting, .timer-digital, .streak-number, .completed-task-name, .completion-container h2 {
-    font-family: 'Playfair Display', Georgia, serif;
-}
+
 
 /* Gamification & New Dashboard Cards Styles */
 .side-quest-card, .extracurricular-card, .anchors-card, .personal-bests-card, .level-card {
@@ -2398,17 +2447,7 @@ h1, h2, h3, .brand h1, #welcome-greeting, .timer-digital, .streak-number, .compl
     transform: scale(1.05);
 }
 
-/* Sidebar Collapse Mobile Slide-down Override */
-@media (max-width: 768px) {
-    .sidebar {
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    }
-    body.sidebar-collapsed .sidebar {
-        transform: translateY(100%) !important;
-        width: 100% !important;
-        padding: 4px 16px !important;
-    }
-}
+
 
 /* Side Quest details */
 .side-quest-header {
@@ -2457,6 +2496,26 @@ h1, h2, h3, .brand h1, #welcome-greeting, .timer-digital, .streak-number, .compl
 
 .hobby-controls select:focus, .hobby-controls input:focus {
     box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+}
+
+.hobby-tag-btn {
+    background-color: var(--color-bg-card-hover);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition-quick);
+}
+.hobby-tag-btn:hover {
+    color: var(--text-main);
+    border-color: var(--border-color-hover);
+}
+.hobby-tag-btn.active {
+    background-color: var(--color-primary-glow);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
 }
 
 /* Add custom inputs */

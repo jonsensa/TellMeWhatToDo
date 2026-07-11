@@ -18,7 +18,6 @@ let state = {
         strictMode: true,
         dashboardOrder: [
             "focus-engine",
-            "focus-status",
             "side-quest-container",
             "extracurricular-container",
             "anchors-container",
@@ -36,6 +35,7 @@ let state = {
     level: 1,
     totalFocusedMinutes: 0,
     categoryKnowledge: {},
+    customSideQuests: [],
     sideQuest: { name: "", completed: false, date: "" },
     personalBests: { maxStreak: 0, maxDailyFocusMins: 0, maxCompletionsInADay: 0 },
     extracurriculars: ["Guitar Practice", "Painting", "Creative Writing", "Gardening", "Cooking Experiment", "Reading Novels"],
@@ -97,13 +97,7 @@ function initApp() {
     }
     updateThemeToggleUI();
 
-    // Load sidebar collapse setting (defaults to closed/true)
-    const sidebarCollapsed = localStorage.getItem("tellmewhattodo_sidebar_collapsed") !== "false";
-    if (sidebarCollapsed) {
-        document.body.classList.add("sidebar-collapsed");
-    } else {
-        document.body.classList.remove("sidebar-collapsed");
-    }
+
 
     updateDateDisplay();
     renderDashboardLayout();
@@ -136,7 +130,6 @@ function loadStateFromStorage() {
                 strictMode: true,
                  dashboardOrder: [
                     "focus-engine",
-                    "focus-status",
                     "side-quest-container",
                     "extracurricular-container",
                     "anchors-container",
@@ -152,16 +145,30 @@ function loadStateFromStorage() {
                 state.settings.widgetSizes = {};
             }
 
-            // Auto-append leveling widget if missing from existing loaded profile
-            if (state.settings.dashboardOrder && !state.settings.dashboardOrder.includes("leveling-container")) {
-                state.settings.dashboardOrder.push("leveling-container");
+            // Sync dashboardOrder to ensure all default widgets are present and focus-status is removed
+            const defaultWidgets = [
+                "focus-engine",
+                "side-quest-container",
+                "extracurricular-container",
+                "anchors-container",
+                "personal-bests-container",
+                "trajectory-chart",
+                "activity-heatmap",
+                "leveling-container"
+            ];
+            if (state.settings.dashboardOrder && Array.isArray(state.settings.dashboardOrder)) {
+                state.settings.dashboardOrder = state.settings.dashboardOrder.filter(id => id !== "focus-status");
+                defaultWidgets.forEach(wId => {
+                    if (!state.settings.dashboardOrder.includes(wId)) {
+                        state.settings.dashboardOrder.push(wId);
+                    }
+                });
             }
             
             // Fallback check if it was overwritten to undefined or is missing
             if (!state.settings.dashboardOrder || !Array.isArray(state.settings.dashboardOrder)) {
                 state.settings.dashboardOrder = [
                     "focus-engine",
-                    "focus-status",
                     "side-quest-container",
                     "extracurricular-container",
                     "anchors-container",
@@ -180,6 +187,7 @@ function loadStateFromStorage() {
             state.level = parsed.level || 1;
             state.totalFocusedMinutes = parsed.totalFocusedMinutes || 0;
             state.categoryKnowledge = parsed.categoryKnowledge || {};
+            state.customSideQuests = parsed.customSideQuests || [];
             state.sideQuest = parsed.sideQuest || { name: "", completed: false, date: "" };
             state.personalBests = parsed.personalBests || { maxStreak: parsed.bestStreak || 0, maxDailyFocusMins: 0, maxCompletionsInADay: 0 };
             state.extracurriculars = parsed.extracurriculars || ["Guitar Practice", "Painting", "Creative Writing", "Gardening", "Cooking Experiment", "Reading Novels"];
@@ -207,7 +215,6 @@ function loadStateFromStorage() {
                 strictMode: true,
                 dashboardOrder: [
                     "focus-engine",
-                    "focus-status",
                     "side-quest-container",
                     "extracurricular-container",
                     "anchors-container",
@@ -263,6 +270,7 @@ function saveStateToStorage() {
             level: state.level,
             totalFocusedMinutes: state.totalFocusedMinutes,
             categoryKnowledge: state.categoryKnowledge,
+            customSideQuests: state.customSideQuests,
             sideQuest: state.sideQuest,
             personalBests: state.personalBests,
             extracurriculars: state.extracurriculars,
@@ -351,21 +359,32 @@ function setupEventListeners() {
         });
     });
 
-    // Sidebar collapse toggler
-    const collapseBtn = document.getElementById("sidebar-collapse-btn");
-    if (collapseBtn) {
-        collapseBtn.addEventListener("click", () => {
-            document.body.classList.toggle("sidebar-collapsed");
-            const collapsed = document.body.classList.contains("sidebar-collapsed");
-            localStorage.setItem("tellmewhattodo_sidebar_collapsed", collapsed ? "true" : "false");
-            
-            // Redraw SVG graphs to account for the wider layout!
-            setTimeout(() => {
-                renderTrajectoryGraph();
-                renderContributionCalendar();
-            }, 320); // Wait for transition animation to finish (300ms)
-        });
-    }
+    // Satisfying ripple effect on buttons
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn');
+        if (!btn) return;
+        
+        const ripple = document.createElement('span');
+        ripple.classList.add('ripple-effect');
+        
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+        ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+        
+        btn.appendChild(ripple);
+        ripple.addEventListener('animationend', () => ripple.remove());
+    });
+
+    // Success pop on success buttons
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-success');
+        if (!btn) return;
+        btn.classList.add('success-pop');
+        btn.addEventListener('animationend', () => btn.classList.remove('success-pop'), { once: true });
+    });
+
 
     // Dashboard Triggers
     document.getElementById("suggest-trigger-btn").addEventListener("click", () => {
@@ -428,6 +447,70 @@ function setupEventListeners() {
         saveStateToStorage();
         showToast(state.settings.strictMode ? "Strict mode enabled." : "Strict mode disabled.");
     });
+
+    // Custom Content Add Triggers inside Settings
+    const addQuestBtn = document.getElementById("settings-add-quest-btn");
+    if (addQuestBtn) {
+        addQuestBtn.addEventListener("click", () => {
+            const input = document.getElementById("settings-new-quest");
+            const val = input.value.trim();
+            if (val) {
+                if (!state.customSideQuests) state.customSideQuests = [];
+                if (state.customSideQuests.includes(val) || SIDE_QUESTS.includes(val)) {
+                    showToast("Quest already exists!", true);
+                    return;
+                }
+                state.customSideQuests.push(val);
+                input.value = "";
+                saveStateToStorage();
+                renderCustomContentSettings();
+                renderSideQuestCard();
+                showToast("Custom side quest added.");
+            }
+        });
+    }
+
+    const addHobbyBtn = document.getElementById("settings-add-hobby-btn");
+    if (addHobbyBtn) {
+        addHobbyBtn.addEventListener("click", () => {
+            const input = document.getElementById("settings-new-hobby");
+            const val = input.value.trim();
+            if (val) {
+                if (state.extracurriculars.includes(val)) {
+                    showToast("Hobby already exists!", true);
+                    return;
+                }
+                state.extracurriculars.push(val);
+                state.activeExtracurricular = val;
+                input.value = "";
+                saveStateToStorage();
+                renderCustomContentSettings();
+                renderExtracurricularCard();
+                showToast(`Hobby "${val}" added.`);
+            }
+        });
+    }
+
+    const addAnchorBtn = document.getElementById("settings-add-anchor-btn");
+    if (addAnchorBtn) {
+        addAnchorBtn.addEventListener("click", () => {
+            const input = document.getElementById("settings-new-anchor");
+            const val = input.value.trim();
+            if (val) {
+                if (state.anchors.includes(val)) {
+                    showToast("Anchor already exists in vault!", true);
+                    return;
+                }
+                state.anchors.push(val);
+                state.activeAnchor = val;
+                input.value = "";
+                saveStateToStorage();
+                renderCustomContentSettings();
+                renderAnchorsCard();
+                showToast("New anchor added to vault.");
+            }
+        });
+    }
 
     // Backup & Data management triggers
     document.getElementById("export-data-btn").addEventListener("click", exportDataJSON);
@@ -785,7 +868,6 @@ function timerTick() {
     if (state.timer.timeLeft <= 0) {
         clearInterval(state.timer.intervalId);
         state.timer.intervalId = null;
-        playCompletionChime();
         completeFocusSession(true); // Auto complete
     }
 }
@@ -909,24 +991,40 @@ function completeFocusSession(isAutoCompleted = false) {
     // Delete original task from active lists (since it is completed)
     state.tasks = state.tasks.filter(t => t.id !== task.id);
 
-    // Clear Timer state
-    state.focusedTask = null;
+    // Play tactile completion chime
+    playCompletionChime();
 
-    // Hide Timer View, show CTA Card
-    document.getElementById("focus-timer-container").classList.add("hidden");
-    document.querySelector(".cta-card").classList.remove("hidden");
+    // Trigger checkmark completion animation on focus timer card
+    const timerContainer = document.getElementById("focus-timer-container");
+    if (timerContainer) {
+        timerContainer.classList.add("completing");
+    }
 
-    // Save to storage
-    saveStateToStorage();
+    // Delay view transitions to let the checkmark stamp animation shine
+    setTimeout(() => {
+        if (timerContainer) {
+            timerContainer.classList.remove("completing");
+        }
 
-    // Re-calculate streaks and update DOM views
-    checkAndUpdateStreak();
-    renderAllViews();
+        // Clear Timer state
+        state.focusedTask = null;
 
-    // Show custom Celebration Modal
-    showCompletionCelebration(task.name);
+        // Hide Timer View, show CTA Card
+        document.getElementById("focus-timer-container").classList.add("hidden");
+        document.querySelector(".cta-card").classList.remove("hidden");
 
-    showToast(`Conquered: "${task.name}"! Logged ${elapsedMins}m focus time.`);
+        // Save to storage
+        saveStateToStorage();
+
+        // Re-calculate streaks and update DOM views
+        checkAndUpdateStreak();
+        renderAllViews();
+
+        // Show custom Celebration Modal
+        showCompletionCelebration(task.name);
+
+        showToast(`Conquered: "${task.name}"! Logged ${elapsedMins}m focus time.`);
+    }, 1000);
 }
 
 /**
@@ -944,6 +1042,7 @@ function showCompletionCelebration(taskName) {
     }
     
     if (modal) modal.classList.remove("hidden");
+    triggerConfetti();
 }
 
 function quitFocusSession() {
@@ -1189,24 +1288,31 @@ function renderDashboardStats() {
     const minsToday = todayItems.reduce((sum, h) => sum + h.duration, 0);
     const pendingCount = state.tasks.length;
 
-    document.getElementById("today-completed-count").textContent = countToday;
+    const todayCompletedCountEl = document.getElementById("today-completed-count");
+    if (todayCompletedCountEl) todayCompletedCountEl.textContent = countToday;
 
-    if (minsToday >= 60) {
-        document.getElementById("today-focus-mins").textContent = `${(minsToday / 60).toFixed(1)}h`;
-    } else {
-        document.getElementById("today-focus-mins").textContent = `${minsToday}m`;
+    const todayFocusMinsEl = document.getElementById("today-focus-mins");
+    if (todayFocusMinsEl) {
+        if (minsToday >= 60) {
+            todayFocusMinsEl.textContent = `${(minsToday / 60).toFixed(1)}h`;
+        } else {
+            todayFocusMinsEl.textContent = `${minsToday}m`;
+        }
     }
 
-    document.getElementById("total-pending-count").textContent = pendingCount;
+    const totalPendingCountEl = document.getElementById("total-pending-count");
+    if (totalPendingCountEl) totalPendingCountEl.textContent = pendingCount;
 
     // Dynamic motivational quotes based on activity
     const messageEl = document.getElementById("dashboard-motivational-msg");
-    if (countToday === 0) {
-        messageEl.textContent = `"The secret of getting ahead is getting started." Select or create a task to begin your focus streak today!`;
-    } else if (minsToday < state.settings.dailyFocusTarget * 60) {
-        messageEl.textContent = `Excellent job! You have logged ${minsToday}m of focus. You are ${Math.round((minsToday / (state.settings.dailyFocusTarget * 60)) * 100)}% of the way to hitting your target. Keep moving!`;
-    } else {
-        messageEl.textContent = `🎉 Daily Goal Conquered! You crossed your target focus goal. Treat yourself, or keep going if you are in the zone!`;
+    if (messageEl) {
+        if (countToday === 0) {
+            messageEl.textContent = `"The secret of getting ahead is getting started." Select or create a task to begin your focus streak today!`;
+        } else if (minsToday < state.settings.dailyFocusTarget * 60) {
+            messageEl.textContent = `Excellent job! You have logged ${minsToday}m of focus. You are ${Math.round((minsToday / (state.settings.dailyFocusTarget * 60)) * 100)}% of the way to hitting your target. Keep moving!`;
+        } else {
+            messageEl.textContent = `🎉 Daily Goal Conquered! You crossed your target focus goal. Treat yourself, or keep going if you are in the zone!`;
+        }
     }
 
     // 1. Update Streaks Card on Dashboard
@@ -1612,6 +1718,100 @@ function loadSettingsToForm() {
     document.getElementById("settings-username").value = state.settings.username;
     document.getElementById("settings-daily-target").value = state.settings.dailyFocusTarget;
     document.getElementById("settings-strict-mode").checked = !!state.settings.strictMode;
+    renderCustomContentSettings();
+}
+
+function renderCustomContentSettings() {
+    // 1. Render Side Quests List
+    const questListEl = document.getElementById("settings-quest-list");
+    if (questListEl) {
+        if (!state.customSideQuests || state.customSideQuests.length === 0) {
+            questListEl.innerHTML = `<li style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 10px 0;">No custom side quests yet.</li>`;
+        } else {
+            questListEl.innerHTML = state.customSideQuests.map((q, idx) => `
+                <li style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-secondary); padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;">${q}</span>
+                    <button class="settings-delete-quest-btn" data-index="${idx}" style="background: none; border: none; color: var(--color-danger); cursor: pointer; font-size: 0.85rem; padding: 2px 6px;">✕</button>
+                </li>
+            `).join('');
+            
+            // Delete handlers
+            questListEl.querySelectorAll(".settings-delete-quest-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const idx = parseInt(btn.getAttribute("data-index"), 10);
+                    state.customSideQuests.splice(idx, 1);
+                    saveStateToStorage();
+                    renderCustomContentSettings();
+                    renderSideQuestCard();
+                    showToast("Custom side quest deleted.");
+                });
+            });
+        }
+    }
+
+    // 2. Render Hobbies List
+    const hobbyListEl = document.getElementById("settings-hobby-list");
+    if (hobbyListEl) {
+        if (!state.extracurriculars || state.extracurriculars.length === 0) {
+            hobbyListEl.innerHTML = `<li style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 10px 0;">No hobbies in list.</li>`;
+        } else {
+            hobbyListEl.innerHTML = state.extracurriculars.map((h, idx) => `
+                <li style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-secondary); padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;">${h}</span>
+                    <button class="settings-delete-hobby-btn" data-index="${idx}" style="background: none; border: none; color: var(--color-danger); cursor: pointer; font-size: 0.85rem; padding: 2px 6px;">✕</button>
+                </li>
+            `).join('');
+            
+            // Delete handlers
+            hobbyListEl.querySelectorAll(".settings-delete-hobby-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const idx = parseInt(btn.getAttribute("data-index"), 10);
+                    const deleted = state.extracurriculars.splice(idx, 1)[0];
+                    if (state.activeExtracurricular === deleted) {
+                        state.activeExtracurricular = state.extracurriculars.length > 0 ? state.extracurriculars[0] : "";
+                    }
+                    saveStateToStorage();
+                    renderCustomContentSettings();
+                    renderExtracurricularCard();
+                    showToast("Hobby deleted.");
+                });
+            });
+        }
+    }
+
+    // 3. Render Anchors Vault List
+    const anchorListEl = document.getElementById("settings-anchor-list");
+    if (anchorListEl) {
+        if (!state.anchors || state.anchors.length === 0) {
+            anchorListEl.innerHTML = `<li style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 10px 0;">Anchor vault is empty.</li>`;
+        } else {
+            anchorListEl.innerHTML = state.anchors.map((a, idx) => {
+                const isUrl = isUrlString(a);
+                const display = isUrl ? `🔗 ${a}` : a;
+                return `
+                    <li style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-secondary); padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;" title="${a}">${display}</span>
+                        <button class="settings-delete-anchor-btn" data-index="${idx}" style="background: none; border: none; color: var(--color-danger); cursor: pointer; font-size: 0.85rem; padding: 2px 6px;">✕</button>
+                    </li>
+                `;
+            }).join('');
+            
+            // Delete handlers
+            anchorListEl.querySelectorAll(".settings-delete-anchor-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const idx = parseInt(btn.getAttribute("data-index"), 10);
+                    const deleted = state.anchors.splice(idx, 1)[0];
+                    if (state.activeAnchor === deleted) {
+                        state.activeAnchor = state.anchors.length > 0 ? state.anchors[0] : "";
+                    }
+                    saveStateToStorage();
+                    renderCustomContentSettings();
+                    renderAnchorsCard();
+                    showToast("Anchor deleted from vault.");
+                });
+            });
+        }
+    }
 }
 
 function handleSettingsSubmit(e) {
@@ -1727,7 +1927,6 @@ function factoryResetData() {
             strictMode: true,
             dashboardOrder: [
                 "focus-engine",
-                "focus-status",
                 "side-quest-container",
                 "extracurricular-container",
                 "anchors-container",
@@ -2192,6 +2391,11 @@ function renderContributionCalendar() {
     const container = document.getElementById("contrib-calendar-wrapper");
     if (!container) return;
 
+    const containerWidth = container.getBoundingClientRect().width || 700;
+    const weekdayLabelWidth = 35;
+    const gap = 2;
+    const cellSize = Math.max(8, Math.min(14, (containerWidth - weekdayLabelWidth) / 53 - gap));
+
     // 1. Gather daily stats (focus minutes + 15m mindfulness credit per goal/weekly task)
     const dailyData = {};
     
@@ -2267,7 +2471,7 @@ function renderContributionCalendar() {
             const isFuture = cellDate > today;
             const currentLevel = isFuture ? 0 : level;
 
-            colCellsHtml += `<div class="contrib-cell" data-level="${currentLevel}" title="${tooltipText}"></div>`;
+            colCellsHtml += `<div class="contrib-cell" data-level="${currentLevel}" title="${tooltipText}" style="width: ${cellSize}px; height: ${cellSize}px;"></div>`;
             
             if (d === 0) {
                 colMonth = cellDate.getMonth();
@@ -2354,9 +2558,10 @@ function addTimerMinutes(mins) {
 }
 
 function generateDailySideQuest() {
-    const randomIdx = Math.floor(Math.random() * SIDE_QUESTS.length);
+    const pool = (state.customSideQuests && state.customSideQuests.length > 0) ? state.customSideQuests : SIDE_QUESTS;
+    const randomIdx = Math.floor(Math.random() * pool.length);
     state.sideQuest = {
-        name: SIDE_QUESTS[randomIdx],
+        name: pool[randomIdx],
         completed: false,
         date: getLocalDateString(new Date())
     };
@@ -2389,14 +2594,15 @@ function completeSideQuest() {
 function rerollSideQuest() {
     if (state.sideQuest.completed) return;
     
+    const pool = (state.customSideQuests && state.customSideQuests.length > 0) ? state.customSideQuests : SIDE_QUESTS;
     let currentQuest = state.sideQuest.name;
     let nextQuest = currentQuest;
     
-    if (SIDE_QUESTS.length > 1) {
+    if (pool.length > 1) {
         let attempts = 0;
         do {
-            let randIdx = Math.floor(Math.random() * SIDE_QUESTS.length);
-            nextQuest = SIDE_QUESTS[randIdx];
+            let randIdx = Math.floor(Math.random() * pool.length);
+            nextQuest = pool[randIdx];
             attempts++;
         } while (nextQuest === currentQuest && attempts < 10);
     }
@@ -2518,7 +2724,7 @@ function renderSideQuestCard() {
             ${!state.sideQuest.completed ? `<button class="btn btn-secondary btn-icon-sm" id="reroll-quest-btn" title="Reroll quest">🔄</button>` : ''}
         </div>
         <div class="side-quest-body ${completedClass}">
-            <p class="quest-text">${state.sideQuest.name}</p>
+            <p class="quest-text" style="font-size: 0.95rem; margin-bottom: 12px; font-weight: 500;">${state.sideQuest.name}</p>
             ${state.sideQuest.completed 
                 ? `<div class="quest-status-badge">✅ Quest Cleared! (+15m Score)</div>` 
                 : `<button class="btn btn-success btn-sm btn-full" id="complete-quest-btn">Complete Quest</button>`
@@ -2536,21 +2742,19 @@ function renderExtracurricularCard() {
     const container = document.getElementById("extracurricular-container");
     if (!container) return;
     
-    let optionsHtml = '';
+    let buttonsHtml = '';
     state.extracurriculars.forEach(hobby => {
-        const selected = hobby === state.activeExtracurricular ? 'selected' : '';
-        optionsHtml += `<option value="${hobby}" ${selected}>${hobby}</option>`;
+        const isActive = hobby === state.activeExtracurricular;
+        const activeClass = isActive ? 'active' : '';
+        buttonsHtml += `<button class="hobby-tag-btn ${activeClass}" data-value="${hobby}">${hobby}</button>`;
     });
 
     container.innerHTML = `
         <h3>🎨 Daily Hobby Slot</h3>
         <p class="description" style="margin-bottom: 12px;">Choose and track balanced extracurricular activities.</p>
         <div class="hobby-controls" style="display: flex; flex-direction: column; gap: 10px;">
-            <div style="display: flex; gap: 8px;">
-                <select id="active-hobby-select" class="form-input" style="flex-grow: 1; padding: 6px 10px; border-radius: var(--border-radius-sm); border: none; background: var(--color-bg-card-hover); color: var(--text-main);">
-                    ${optionsHtml}
-                </select>
-                <button class="btn btn-secondary btn-icon-sm" id="cycle-hobby-btn" title="Cycle hobby" style="padding: 0 10px;">🔄</button>
+            <div class="hobby-buttons-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px;">
+                ${buttonsHtml}
             </div>
             
             <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -2561,18 +2765,21 @@ function renderExtracurricularCard() {
                 </div>
             </div>
             
-            <button class="btn btn-primary btn-sm btn-full" id="start-hobby-btn">Focus on Hobby</button>
-            
-            <div class="add-hobby-row" style="display: flex; gap: 6px; margin-top: 4px; border-top: 1px dashed var(--text-muted); padding-top: 8px;">
-                <input type="text" id="new-hobby-input" placeholder="Add custom hobby..." style="flex-grow: 1; font-size: 0.75rem; padding: 4px 8px; border-radius: var(--border-radius-sm); border: none; background: var(--color-bg-card-hover); color: var(--text-main);">
-                <button class="btn btn-secondary btn-xs" id="add-hobby-btn" style="font-size: 0.75rem; padding: 4px 8px;">Add</button>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-primary btn-sm" id="start-hobby-btn" style="flex-grow: 1;">Focus on Hobby</button>
+                <button class="btn btn-secondary btn-icon-sm" id="cycle-hobby-btn" title="Cycle hobby" style="padding: 0 10px;">🔄</button>
             </div>
         </div>
     `;
     
-    document.getElementById("active-hobby-select").addEventListener("change", (e) => {
-        state.activeExtracurricular = e.target.value;
-        saveStateToStorage();
+    // Add click listener for hobby buttons
+    container.querySelectorAll(".hobby-tag-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const val = btn.getAttribute("data-value");
+            state.activeExtracurricular = val;
+            saveStateToStorage();
+            renderExtracurricularCard();
+        });
     });
     
     document.getElementById("cycle-hobby-btn").addEventListener("click", () => {
@@ -2592,44 +2799,52 @@ function renderExtracurricularCard() {
     });
     
     document.getElementById("start-hobby-btn").addEventListener("click", startHobbyFocus);
-    
-    document.getElementById("add-hobby-btn").addEventListener("click", () => {
-        const input = document.getElementById("new-hobby-input");
-        const val = input.value.trim();
-        if (val) {
-            if (state.extracurriculars.includes(val)) {
-                showToast("Hobby already exists!", true);
-                return;
-            }
-            state.extracurriculars.push(val);
-            state.activeExtracurricular = val;
-            saveStateToStorage();
-            renderExtracurricularCard();
-            showToast(`Hobby "${val}" added!`);
-        }
-    });
+}
+
+function isUrlString(str) {
+    if (!str) return false;
+    const trimmed = str.trim();
+    if (/^https?:\/\//i.test(trimmed)) return true;
+    const domainPattern = /^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,6}(:[0-9]{1,5})?(\/.*)?$/i;
+    return domainPattern.test(trimmed);
+}
+
+function formatUrl(str) {
+    const trimmed = str.trim();
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return 'https://' + trimmed;
 }
 
 function renderAnchorsCard() {
     const container = document.getElementById("anchors-container");
     if (!container) return;
     
-    const anchorText = state.activeAnchor 
-        ? `<div class="anchor-quote-box" style="margin: 10px 0; padding: 12px; border-radius: var(--border-radius-sm); background: var(--color-bg-card-hover); border-left: 3px solid var(--color-success); font-style: italic; font-size: 0.9rem; color: var(--text-main); line-height: 1.4;">"${state.activeAnchor}"</div>`
-        : `<p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin: 12px 0;">No active anchor. Press below to draw one!</p>`;
+    let anchorDisplayHtml = '';
+    if (state.activeAnchor) {
+        const isActiveUrl = isUrlString(state.activeAnchor);
+        if (isActiveUrl) {
+            const formattedUrl = formatUrl(state.activeAnchor);
+            anchorDisplayHtml = `
+                <div class="anchor-quote-box" style="margin: 10px 0; padding: 12px; border-radius: var(--border-radius-sm); background: var(--color-bg-card-hover); border-left: 3px solid var(--color-success); font-style: italic; font-size: 0.9rem; text-align: center;">
+                    <a href="${formattedUrl}" target="_blank" style="color: var(--color-success); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+                        🔗 ${state.activeAnchor}
+                    </a>
+                </div>
+            `;
+        } else {
+            anchorDisplayHtml = `<div class="anchor-quote-box" style="margin: 10px 0; padding: 12px; border-radius: var(--border-radius-sm); background: var(--color-bg-card-hover); border-left: 3px solid var(--color-success); font-style: italic; font-size: 0.9rem; color: var(--text-main); line-height: 1.4;">"${state.activeAnchor}"</div>`;
+        }
+    } else {
+        anchorDisplayHtml = `<p style="font-size: 0.85rem; color: var(--text-muted); text-align: center; margin: 12px 0;">No active anchor. Press below to draw one!</p>`;
+    }
 
     container.innerHTML = `
         <h3>⚓ Focus Anchors</h3>
         <p class="description">Ground yourself to start work when you are feeling stuck.</p>
         
-        ${anchorText}
+        ${anchorDisplayHtml}
         
         <button class="btn btn-secondary btn-sm btn-full" id="draw-anchor-btn">Draw Anchor</button>
-        
-        <div class="manage-anchors-row" style="display: flex; gap: 6px; margin-top: 8px; border-top: 1px dashed var(--text-muted); padding-top: 8px;">
-            <input type="text" id="new-anchor-input" placeholder="Add custom anchor..." style="flex-grow: 1; font-size: 0.75rem; padding: 4px 8px; border-radius: var(--border-radius-sm); border: none; background: var(--color-bg-card-hover); color: var(--text-main);">
-            <button class="btn btn-secondary btn-xs" id="add-anchor-btn" style="font-size: 0.75rem; padding: 4px 8px;">Add</button>
-        </div>
     `;
     
     document.getElementById("draw-anchor-btn").addEventListener("click", () => {
@@ -2646,22 +2861,6 @@ function renderAnchorsCard() {
         saveStateToStorage();
         renderAnchorsCard();
         showToast("Anchor activated! Ground yourself on this.");
-    });
-    
-    document.getElementById("add-anchor-btn").addEventListener("click", () => {
-        const input = document.getElementById("new-anchor-input");
-        const val = input.value.trim();
-        if (val) {
-            if (state.anchors.includes(val)) {
-                showToast("Anchor already exists in vault!", true);
-                return;
-            }
-            state.anchors.push(val);
-            state.activeAnchor = val;
-            saveStateToStorage();
-            renderAnchorsCard();
-            showToast("New anchor added to vault!");
-        }
     });
 }
 
@@ -2709,7 +2908,6 @@ function renderDashboardLayout() {
 
     const order = state.settings.dashboardOrder || [
         "focus-engine",
-        "focus-status",
         "side-quest-container",
         "extracurricular-container",
         "anchors-container",
@@ -2733,7 +2931,8 @@ function setupDragAndDrop() {
     let draggedId = null;
 
     container.addEventListener("dragstart", (e) => {
-        if (e.target.closest(".widget-resizer-handle")) {
+        const interactiveSelectors = "input, select, button, textarea, a, .hobby-tag-btn, .btn, .widget-resizer-handle, .btn-delete-quest, .btn-delete-anchor, .btn-close-modal, option";
+        if (e.target.closest(interactiveSelectors)) {
             e.preventDefault();
             return;
         }
@@ -2778,7 +2977,6 @@ function setupDragAndDrop() {
             
             const order = state.settings.dashboardOrder || [
                 "focus-engine",
-                "focus-status",
                 "side-quest-container",
                 "extracurricular-container",
                 "anchors-container",
@@ -2871,6 +3069,7 @@ function addXP(amount, reason, category = "General") {
         state.level = currentRank.level;
         showToast(`🎉 LEVEL UP! You are now a "${currentRank.title}" (Level ${currentRank.level})!`, false);
         playLevelUpChime();
+        triggerConfetti();
     }
     
     saveStateToStorage();
@@ -2976,34 +3175,43 @@ function renderLevelingCard() {
     }
 
     container.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-            <h3 style="font-size: 0.9rem; margin: 0;">⚡ Rank & Level</h3>
-            <span style="background: rgba(0, 242, 254, 0.1); color: var(--color-primary); padding: 1px 6px; border-radius: 10px; font-size: 0.65rem; font-weight: 700; border: 1px solid rgba(0, 242, 254, 0.2);">
-                Lv. ${currentRank.level}
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <h3 style="font-size: 0.95rem; margin: 0; font-weight: 700;">⚡ Rank & Level</h3>
+            <span style="background: rgba(46, 170, 220, 0.12); color: var(--color-primary); padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(46, 170, 220, 0.25);">
+                Level ${currentRank.level}
             </span>
         </div>
         
-        <!-- Compact Rank Panel -->
-        <div class="rank-panel" style="background: var(--color-bg-card-hover); padding: 8px 10px; border-radius: var(--border-radius-md); border: 1px dashed rgba(255,255,255,0.05); margin-bottom: 8px;">
-            <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-main); line-height: 1.2;">
-                ${currentRank.title}
+        <!-- Prominent Rank Panel -->
+        <div class="rank-panel" style="background: var(--color-bg-card-hover); padding: 12px 14px; border-radius: var(--border-radius-md); border: 1px solid var(--border-color); margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">
+            <div style="font-weight: 800; font-size: 1.05rem; color: var(--text-main); line-height: 1.2; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                👑 ${currentRank.title}
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 10px; font-style: italic;">
+                "${currentRank.desc}"
             </div>
             
-            <!-- Compact Progress -->
-            <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted); margin: 6px 0 2px 0;">
+            <!-- Prominent Progress Bar -->
+            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500;">
                 <span>Progression</span>
                 <span>${progressLabel}</span>
             </div>
-            <div class="widget-progress-bar" style="height: 5px; background-color: var(--color-bg-deep); border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.03);">
-                <div class="widget-progress-fill" style="width: ${progressPercent}%; height: 100%; background: linear-gradient(90deg, var(--color-accent-purple), var(--color-primary)); border-radius: 3px;"></div>
+            <div class="widget-progress-bar" style="height: 8px; background-color: var(--color-bg-deep); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.03);">
+                <div class="widget-progress-fill" id="level-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--color-accent-purple), var(--color-primary)); border-radius: 4px; box-shadow: 0 0 8px var(--color-primary-glow);"></div>
             </div>
         </div>
 
-        <!-- Compact Proficiencies -->
-        <div class="proficiencies-list" style="display: flex; flex-direction: column; gap: 4px;">
+        <!-- Proficiencies -->
+        <div class="proficiencies-list" style="display: flex; flex-direction: column; gap: 5px;">
             ${skillListHtml}
         </div>
     `;
+
+    // Slide progress bar to actual value
+    setTimeout(() => {
+        const fillEl = document.getElementById("level-progress-fill");
+        if (fillEl) fillEl.style.width = `${progressPercent}%`;
+    }, 50);
 }
 
 function setupWidgetResizers() {
@@ -3097,5 +3305,84 @@ function setupWidgetResizers() {
 
         widget.appendChild(handle);
     });
+}
+
+function triggerConfetti() {
+    const canvas = document.createElement("canvas");
+    canvas.style.position = "fixed";
+    canvas.style.top = "0";
+    canvas.style.left = "0";
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.pointerEvents = "none";
+    canvas.style.zIndex = "9999";
+    document.body.appendChild(canvas);
+
+    const ctx = canvas.getContext("2d");
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    window.addEventListener("resize", () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    });
+
+    const colors = ["#2eaadc", "#9a6dd7", "#529e72", "#eb5757", "#df9b35", "#ff0055", "#00f2fe"];
+    const particles = [];
+
+    for (let i = 0; i < 150; i++) {
+        particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height - height,
+            r: Math.random() * 6 + 4,
+            d: Math.random() * 150,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            tilt: Math.random() * 10 - 5,
+            tiltAngleIncremental: Math.random() * 0.07 + 0.02,
+            tiltAngle: 0
+        });
+    }
+
+    let animationId;
+    let opacity = 1;
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        particles.forEach((p, idx) => {
+            p.tiltAngle += p.tiltAngleIncremental;
+            p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
+            p.x += Math.sin(p.tiltAngle);
+            p.tilt = Math.sin(p.tiltAngle - idx / 3) * 15;
+
+            ctx.beginPath();
+            ctx.lineWidth = p.r;
+            ctx.strokeStyle = p.color;
+            ctx.globalAlpha = opacity;
+            ctx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+            ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+            ctx.stroke();
+        });
+
+        update();
+    }
+
+    function update() {
+        let remaining = 0;
+        particles.forEach(p => {
+            if (p.y < height) remaining++;
+        });
+
+        if (remaining === 0) {
+            opacity -= 0.02;
+            if (opacity <= 0) {
+                cancelAnimationFrame(animationId);
+                canvas.remove();
+                return;
+            }
+        }
+        animationId = requestAnimationFrame(draw);
+    }
+
+    draw();
 }
 
