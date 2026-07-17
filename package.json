@@ -1,0 +1,12 @@
+{
+  "name": "tellmewhattodo",
+  "version": "1.0.0",
+  "description": "Your Smart Focus Scheduler",
+  "scripts": {
+    "dev": "npx --yes http-server www -p 1421",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4"
+  }
+}

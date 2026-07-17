@@ -144,6 +144,9 @@ function loadStateFromStorage() {
             if (!state.settings.widgetSizes) {
                 state.settings.widgetSizes = {};
             }
+            if (state.settings.widgetSizes["leveling-container"] === "span-1") {
+                state.settings.widgetSizes["leveling-container"] = "span-2";
+            }
 
             // Sync dashboardOrder to ensure all default widgets are present and focus-status is removed
             const defaultWidgets = [
@@ -3229,7 +3232,7 @@ function setupWidgetResizers() {
         if (!currentSize) {
             if (widgetId === "activity-heatmap") {
                 currentSize = "span-4";
-            } else if (widgetId === "focus-engine" || widgetId === "trajectory-chart") {
+            } else if (widgetId === "focus-engine" || widgetId === "trajectory-chart" || widgetId === "leveling-container") {
                 currentSize = "span-2";
             } else {
                 currentSize = "span-1";
